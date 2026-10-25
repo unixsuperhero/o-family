@@ -28,7 +28,15 @@ func statusArgs(args []string) []string {
 	return append([]string{"status"}, args...)
 }
 
+// catalog is the answer to o-family catalog: schema 1 with no nouns, so
+// family tooling (o-inventory, nabe) still finds a well-formed catalog.
+const catalog = `{"schema":1,"name":"o-family","version":"moved to o-proj","nouns":[]}`
+
 func run(args []string, stdin io.Reader, stdout, stderr io.Writer, lookPath func(string) (string, error)) int {
+	if len(args) == 1 && args[0] == "catalog" {
+		fmt.Fprintln(stdout, catalog)
+		return 0
+	}
 	argv := statusArgs(args)
 	fmt.Fprintf(stderr, "o family moved into o proj: running o proj %s\n", joinArgs(argv))
 	bin, err := lookPath("o-proj")

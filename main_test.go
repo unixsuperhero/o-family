@@ -36,3 +36,10 @@ func TestRunDelegatesWithExitCode(t *testing.T) {
 		t.Fatalf("no o-proj: %d %q", code, errOut.String())
 	}
 }
+
+func TestCatalogIsEmpty(t *testing.T) {
+	var out, errOut bytes.Buffer
+	if code := run([]string{"catalog"}, nil, &out, &errOut, nil); code != 0 || !strings.Contains(out.String(), `"schema":1`) || errOut.Len() != 0 {
+		t.Fatalf("catalog %d %q %q", code, out.String(), errOut.String())
+	}
+}
