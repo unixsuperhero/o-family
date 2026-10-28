@@ -212,6 +212,8 @@ body{display:grid;place-items:center}
 .lk-row{display:flex;gap:56px}
 .lk-item{display:flex;flex-direction:column;align-items:center;gap:14px;font:500 15px var(--mono);letter-spacing:2px;color:var(--soft);opacity:0}
 .lk-item .ico{width:72px;height:72px}
+.lk-foot{margin-top:-24px;font:400 20px var(--mono);letter-spacing:1px;color:var(--faint);opacity:0}
+.lk-foot a{color:inherit;text-decoration:none;pointer-events:auto}
 .overlay .line{height:2px;width:0;background:var(--model);margin:40px 0 0}
 .overlay .head .m{background-size:0% 5px;background-position:0 94%}
 .overlay .opener{font:400 66px/1.3 var(--sans);color:#e8e1d4;max-width:1500px;letter-spacing:-.5px}
@@ -278,7 +280,8 @@ const SHOW_CONFIG = {
   front: { name: "o family", mark: "{{icon:family}} o family",
     items: ["{{icon:ochazuke}} ochazuke", "{{icon:oden}} oden", "{{icon:matomeru}} matomeru", "{{icon:o-ai}} o-ai", "{{icon:o-inventory}} o-inventory", "{{icon:o-proj}} o-proj"] },
   back: { name: "o family (end)", mark: "{{icon:family}} o family",
-    items: ["{{icon:ochazuke}} ochazuke", "{{icon:oden}} oden", "{{icon:matomeru}} matomeru", "{{icon:o-ai}} o-ai", "{{icon:o-inventory}} o-inventory", "{{icon:o-proj}} o-proj"] },
+    items: ["{{icon:ochazuke}} ochazuke", "{{icon:oden}} oden", "{{icon:matomeru}} matomeru", "{{icon:o-ai}} o-ai", "{{icon:o-inventory}} o-inventory", "{{icon:o-proj}} o-proj"],
+    foot: "github.com/unixsuperhero/o-family", href: "https://github.com/unixsuperhero/o-family" },
   outro: {
     kicker: "{{icon:family}} o family · the point",
     head: "Declared once as data, [[every app gets it for free.]] [[Done imperatively, every app writes it again.]]",
@@ -1889,15 +1892,19 @@ const buildOutro = () => titleCard(SHOW_CONFIG.outro, { hold: 4000, fadeOutAt: !
 
 // a lockup: a large mark (serif, {{icon:…}} tokens welcome) and a row of items
 // under it, each an icon over a small name; the mark comes in, then the items
-// one by one. The last segment of the show ends still, for a recording.
+// one by one, then an optional `foot` line (a URL, say; `href` makes it a
+// link) fades up under them. The last segment of the show ends still, for a
+// recording.
 function buildLockup(cfg, last) {
   const o = $("overlay");
-  o.innerHTML = `<div class="lockup"><div class="lk-mark">${markup(cfg.mark)}</div><div class="lk-row">${(cfg.items || []).map(i => `<div class="lk-item">${markup(i)}</div>`).join("")}</div></div>`;
+  o.innerHTML = `<div class="lockup"><div class="lk-mark">${markup(cfg.mark)}</div><div class="lk-row">${(cfg.items || []).map(i => `<div class="lk-item">${markup(i)}</div>`).join("")}</div>${cfg.foot ? `<div class="lk-foot">${cfg.href ? `<a href="${esc(cfg.href).replace(/"/g, "&quot;")}">${markup(cfg.foot)}</a>` : markup(cfg.foot)}</div>` : ""}</div>`;
   hideChrome(true);
   A(o, [{ opacity: 0 }, { opacity: 1 }], 0, 400, "ease-out");
   A(o.querySelector(".lk-mark"), [{ opacity: 0, transform: "scale(.94)" }, { opacity: 1, transform: "none" }], 300, 900);
   let t = 1300;
   o.querySelectorAll(".lk-item").forEach(it => { fadeUp(it, t, 500, 12); t += 220; });
+  const foot = o.querySelector(".lk-foot");
+  if (foot) { fadeUp(foot, t + 300, 600, 8); t += 900; }
   t += 500 + (cfg.hold ?? 1800);
   if (!last) { fadeOut(o, t, 600); t += 700; }
   return t;
