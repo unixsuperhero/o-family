@@ -18,13 +18,15 @@ The names are Japanese food and craft words, most with the honorific お (o-): o
 | <img alt="" src="https://raw.githubusercontent.com/unixsuperhero/ochazuke/main/assets/icon.svg" width="64"> | [ochazuke](https://github.com/unixsuperhero/ochazuke) | A Go TUI framework on Bubble Tea v2 where nouns, verbs and keybindings are data, so every action in an app is also a command you can run from the shell. |
 | <img alt="" src="https://raw.githubusercontent.com/unixsuperhero/oden/main/assets/icon.svg" width="64"> | [oden](https://github.com/unixsuperhero/oden) | The lowest layer for subcommand CLIs in Go: a bin's inline commands merged with executables on PATH, resolved by prefix. Standard library only. |
 | <img alt="" src="https://raw.githubusercontent.com/unixsuperhero/matomeru/main/assets/icon.svg" width="64"> | [matomeru](https://github.com/unixsuperhero/matomeru) (`mtm`) | A terminal workspace for coding agents: projects, tasks, notes, live agent panes, their turns and your reviews, in one TUI. |
-| | [nabe](https://github.com/unixsuperhero/nabe) | A host for ochazuke extensions (`o nabe`, `o tui`): any executable that answers `catalog` becomes a page. |
+| <img alt="" src="assets/icon.svg" width="64"> | [nabe](https://github.com/unixsuperhero/nabe) | A host for ochazuke extensions (`o nabe`, `o tui`): any executable that answers `catalog` becomes a page. |
 | <img alt="" src="https://raw.githubusercontent.com/unixsuperhero/o-ai/main/assets/icon.svg" width="64"> | [o-ai](https://github.com/unixsuperhero/o-ai) | The local AI harnesses and their providers, models, skills, agents and settings, inspected without making a model request. |
 | <img alt="" src="https://raw.githubusercontent.com/unixsuperhero/o-inventory/main/assets/icon.svg" width="64"> | [o-inventory](https://github.com/unixsuperhero/o-inventory) | Snapshots the family's tools, nouns, verbs and bindings over time and renders the changelogs from the diffs. |
 | <img alt="" src="https://raw.githubusercontent.com/unixsuperhero/o-proj/main/assets/icon.svg" width="64"> | [o-proj](https://github.com/unixsuperhero/o-proj) | The family's repositories on disk: create, record in one manifest, link from the hub, clone, sync and report status. |
-| | [o-md](https://github.com/unixsuperhero/o-md) | Markdown documents with item notes, a family extension for mtm. |
-| | [o-qbt](https://github.com/unixsuperhero/o-qbt) | qBittorrent on the NAS: torrents and categories as rows, transfer limits, and a free-space guard. |
-| | [o-modal](https://github.com/unixsuperhero/o-modal) | A proof of concept: a modal key engine for Go. Keys in, steps out; the host decides what runs. |
+| <img alt="" src="assets/icon.svg" width="64"> | [o-md](https://github.com/unixsuperhero/o-md) | Markdown documents with item notes, a family extension for mtm. |
+| <img alt="" src="assets/icon.svg" width="64"> | [o-qbt](https://github.com/unixsuperhero/o-qbt) | qBittorrent on the NAS: torrents and categories as rows, transfer limits, and a free-space guard. |
+| <img alt="" src="assets/icon.svg" width="64"> | [o-modal](https://github.com/unixsuperhero/o-modal) | A proof of concept: a modal key engine for Go. Keys in, steps out; the host decides what runs. |
+
+Tools without a logo of their own carry the family's.
 
 ## How they fit
 
