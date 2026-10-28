@@ -1,0 +1,2188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Declared Once</title>
+<style>
+:root{
+  --backdrop:#050607;
+  --bg:#0e1013;
+  --panel:#14171c;
+  --panel-bar:#1a1e24;
+  --rule:#2a3038;
+  --paper:#ece6da;
+  --soft:#a9a49a;
+  --faint:#6d6a64;
+  --you:#f2a07b;
+  --model:#9fe0b4;
+  --gold:#f0c674;
+  --c-com:#6f7a72;
+  --c-str:#e6c07b;
+  --c-kw:#d79ccf;
+  --c-fn:#8cc8f0;
+  --c-key:#9fe0b4;
+  --c-op:#f2a07b;
+  --c-num:#f0c674;
+  --mono:"SF Mono","SFMono-Regular",Menlo,Consolas,monospace;
+  --serif:"New York","Iowan Old Style",Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Avenir Next","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--backdrop);overflow:hidden}
+body{display:grid;place-items:center}
+.stage{width:1920px;height:1080px;position:relative;overflow:hidden;flex-shrink:0;background:var(--bg);color:var(--paper);font-family:var(--sans);transform-origin:center}
+.stage::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 70% 60% at 100% 0%,#1d2a2333,transparent 70%),radial-gradient(ellipse 60% 50% at 0% 100%,#2a1f1a33,transparent 70%)}
+
+/* chrome */
+.top{position:absolute;left:96px;right:96px;top:64px;height:64px;display:flex;align-items:flex-end;justify-content:space-between;gap:40px}
+.top .ch{display:flex;align-items:baseline;gap:22px;min-width:0}
+.top .num{font:500 20px var(--mono);color:var(--model);letter-spacing:2px}
+.top .title{font:400 40px/1.1 var(--serif);letter-spacing:-.5px;white-space:nowrap}
+.top .src{font:15px var(--mono);color:var(--faint);white-space:nowrap}
+.rule{position:absolute;left:96px;right:96px;top:150px;height:1px;background:var(--rule)}
+.progress{position:absolute;left:96px;right:96px;bottom:56px;display:flex;gap:8px}
+.progress i{flex:1;height:3px;background:var(--rule);border-radius:2px;overflow:hidden;position:relative}
+.progress i b{position:absolute;inset:0;background:var(--model);transform-origin:left;transform:scaleX(0)}
+.progress i.done b{transform:scaleX(1)}
+.brand{position:absolute;right:96px;bottom:22px;font:13px var(--mono);color:var(--faint);letter-spacing:3px;text-transform:uppercase}
+
+/* beats: each one is a layer filling the content area */
+.content{position:absolute;left:96px;right:96px;top:166px;bottom:96px}
+.layer{position:absolute;inset:0;opacity:0}
+
+/* thread */
+.thread-layer{display:grid;grid-template-columns:860px minmax(0,1fr);gap:72px}
+.viewport{position:relative;overflow:hidden;min-height:0;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 34px);mask-image:linear-gradient(to bottom,transparent 0,#000 34px)}
+.thread{position:absolute;left:0;right:0;top:0;padding-top:24px}
+.msg{margin-bottom:34px;opacity:0}
+.who{font:600 15px var(--mono);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px}
+.msg.you .who{color:var(--you)}
+.msg.model .who{color:var(--model)}
+.msg.you .text{font-size:27px;line-height:1.45;color:#d6d0c4;border-left:3px solid #f2a07b55;padding-left:22px}
+.msg.you .c{opacity:0}
+.msg.model .text{font-family:var(--serif);font-size:32px;line-height:1.36;letter-spacing:-.3px;color:#bdb7ab}
+.text p{margin:0 0 .55em}
+.text p:last-child{margin-bottom:0}
+.code-inline{font-family:var(--mono);font-size:.78em;color:var(--soft);display:inline-block;margin-top:.4em}
+/* {{icon:NAME}} in any text: an inline square mark, 1.1em of the text around it */
+.ico{display:inline-block;width:1.1em;height:1.1em;vertical-align:-.2em;flex-shrink:0}
+.ico svg{width:100%;height:100%;display:block}
+.ico.none{border-radius:.24em;background:var(--rule)}
+.overlay .head .ico{width:.78em;height:.78em;vertical-align:-.04em}
+.w{opacity:0;display:inline-block;white-space:pre}
+.m{background-image:linear-gradient(var(--model),var(--model));background-repeat:no-repeat;background-position:0 92%;background-size:0% 3px;padding-bottom:2px}
+.msg.you .m{background-image:linear-gradient(var(--you),var(--you))}
+.m .w{display:inline}
+
+.right{min-height:0;min-width:0;display:flex;flex-direction:column;gap:22px}
+.slot{display:grid;min-height:0;flex:0 1 auto;max-height:100%}
+.right.two .slot{flex:1 1 0}
+.slot>*{grid-area:1/1;align-self:start;max-height:100%;min-height:0}
+
+/* code panel */
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:14px;overflow:hidden;box-shadow:0 30px 80px #0006;opacity:0;display:flex;flex-direction:column}
+.bar{height:46px;flex-shrink:0;display:flex;align-items:center;gap:16px;padding:0 20px;background:var(--panel-bar);border-bottom:1px solid var(--rule);font:15px var(--mono);color:var(--soft)}
+.dots{display:flex;gap:8px}.dots i{width:11px;height:11px;border-radius:50%;background:#3a4048}
+.dots i:nth-child(1){background:#e0795f}.dots i:nth-child(2){background:#d8b45a}.dots i:nth-child(3){background:#6fbf84}
+.bar .label{position:relative;flex:1;height:20px}
+.bar .label span{position:absolute;left:0;top:0;white-space:nowrap}
+.body{position:relative;padding:20px 0 24px;overflow:hidden;flex:1;min-height:0}
+.stack{display:grid}
+.stack>.block{grid-area:1/1}
+.block{font-family:var(--mono);line-height:1.6;white-space:pre}
+.ln{display:block;position:relative;padding:0 26px 0 60px;opacity:0;border-radius:3px}
+.ln::before{content:attr(data-n);position:absolute;left:0;width:42px;text-align:right;color:#454b54;font-size:.8em;top:.12em}
+.ln .strike{position:absolute;left:54px;right:20px;top:52%;height:2px;background:var(--you);transform:scaleX(0);transform-origin:left}
+.com{color:var(--c-com);font-style:italic}.str{color:var(--c-str)}.kw{color:var(--c-kw)}.fn{color:var(--c-fn)}.key{color:var(--c-key)}.op{color:var(--c-op)}.num{color:var(--c-num)}
+.glow{border-radius:4px}
+
+/* split */
+.split-layer{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;align-content:center;padding-bottom:40px}
+.split-layer .panel{max-height:798px}
+
+/* cards */
+.cards{display:flex;flex-direction:column;gap:30px}
+.card h4{margin:0 0 14px;font:600 15px var(--mono);letter-spacing:3px;text-transform:uppercase;opacity:0}
+.card.good h4{color:var(--model)}.card.risk h4{color:var(--you)}
+.card .item{font-size:26px;line-height:1.3;padding:13px 20px;margin-bottom:10px;background:var(--panel);border:1px solid var(--rule);border-left:4px solid var(--model);border-radius:8px;opacity:0}
+.card.risk .item{border-left-color:var(--you)}
+.card .item.hot{border-color:#9fe0b466;border-left-color:var(--model);background:#16201b}
+
+/* quote */
+.quote-layer{display:flex;flex-direction:column;justify-content:center;padding:0 64px 40px}
+.quote-layer .who{color:var(--model);margin-bottom:34px}
+.quote-layer .big{font:400 96px/1.12 var(--serif);letter-spacing:-2.5px;color:var(--paper);max-width:1560px}
+.quote-layer .big .m{background-size:0% 6px;background-position:0 94%}
+.quote-layer .lead{color:#bdb7ab}
+
+/* readers */
+.readers{position:absolute;left:0;right:0;top:0;height:610px}
+.readers>svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.readers path{fill:none;stroke:#9fe0b4;stroke-width:2;stroke-dasharray:1;stroke-dashoffset:1;opacity:.6}
+.dot{position:absolute;left:0;top:0;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--model);box-shadow:0 0 14px var(--model);opacity:0;offset-rotate:0deg}
+.src-card{position:absolute;left:0;width:540px;background:var(--panel);border:1px solid var(--model);border-radius:14px;box-shadow:0 0 60px #9fe0b41a;opacity:0;overflow:hidden}
+.src-card .bar{color:var(--model)}
+.src-card .code{padding:18px 22px;font:19px/1.6 var(--mono);white-space:pre}
+.reader{position:absolute;left:780px;right:0;height:104px;background:var(--panel);border:1px solid var(--rule);border-radius:10px;opacity:0;overflow:hidden}
+.reader .rbar{height:32px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--panel-bar);border-bottom:1px solid var(--rule);font:13px var(--mono);color:var(--soft)}
+.reader .rbar b{font-weight:500;color:var(--paper)}
+.reader .rbar span{color:var(--model);letter-spacing:2px;text-transform:uppercase}
+.reader .rbody{padding:9px 16px;font:18px/1.6 var(--mono);white-space:pre}
+.faint{color:var(--faint)}
+.chip{padding:1px 8px;border-radius:4px;background:#2a3038}
+.caption{position:absolute;left:0;right:0;top:640px;font-family:var(--serif);font-size:34px;line-height:1.38;color:#bdb7ab;letter-spacing:-.3px}
+
+/* ── this animation's own styles (beats it adds) ── */
+/* clip: a real recording, synced to the segment clock */
+.clip-layer{display:grid;grid-template-columns:1180px minmax(0,1fr);gap:56px;align-items:start}
+.clip-box{position:relative;width:1180px;height:664px;border-radius:14px;overflow:hidden;border:1px solid var(--rule);background:#1e1e2e;box-shadow:0 30px 80px #0006;opacity:0}
+.clip-box video{width:100%;height:100%;display:block;object-fit:contain}
+.clip-left{display:flex;flex-direction:column;align-items:center}
+.clip-left>.clip-box,.clip-left>.clip-cap{align-self:stretch}
+.clip-tag{margin:0 0 12px;font:600 13px var(--mono);letter-spacing:2.5px;text-transform:uppercase;padding:4px 12px;border-radius:5px;color:#9fe0b4cc;border:1px solid #9fe0b433;background:transparent}
+.clip-tag.empty{visibility:hidden}
+.clip-tag.fast{color:var(--you);border-color:#f2a07b55}
+.clip-tag i{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--you);margin-right:9px;vertical-align:1px}
+.clip-cap{font:15px var(--mono);color:var(--faint);margin-top:14px;opacity:0}
+.clip-side{min-width:0;height:818px;overflow:hidden;position:relative;-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 24px);mask-image:linear-gradient(to bottom,transparent 0,#000 24px)}
+.clip-inner{position:relative;padding-top:4px}
+.clip-side .kick{font:600 15px var(--mono);letter-spacing:3px;text-transform:uppercase;color:var(--model);margin-bottom:16px;opacity:0}
+.clip-side .head{font:400 34px/1.25 var(--serif);letter-spacing:-.4px;color:var(--paper);margin-bottom:26px;opacity:0}
+.cue{font:19px/1.4 var(--mono);color:var(--soft);padding:9px 14px;margin-bottom:8px;border-left:3px solid var(--rule);border-radius:4px;opacity:0}
+.cue b{color:var(--gold);font-weight:500}
+.cue.on{border-left-color:var(--model)}
+.free{margin-top:24px;opacity:0}
+.free .h{font:600 14px var(--mono);letter-spacing:3px;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
+.free .it{font:21px/1.35 var(--sans);color:#d6d0c4;padding:4px 0 4px 18px;position:relative}
+.free .it::before{content:"";position:absolute;left:0;top:.62em;width:7px;height:7px;border-radius:50%;background:var(--model)}
+.planned{color:var(--you);font:600 13px var(--mono);letter-spacing:2px;text-transform:uppercase;border:1px solid #f2a07b66;border-radius:4px;padding:1px 6px;margin-left:8px;vertical-align:2px}
+
+/* keys grid: same keys, different apps */
+.keys-head{font:400 44px/1.2 var(--serif);letter-spacing:-.6px;margin:10px 0 30px;opacity:0}
+.keys-grid{display:grid;gap:8px 10px}
+.kh{font:600 15px var(--mono);letter-spacing:3px;text-transform:uppercase;color:var(--model);padding:0 14px 6px}
+.kk,.kc{font:20px var(--mono);padding:10px 14px;border-radius:8px;opacity:0}
+.kk{color:var(--gold);background:#f0c6741a;border:1px solid #f0c67433}
+.kc{color:#d6d0c4;background:var(--panel);border:1px solid var(--rule)}
+.kc.none{color:var(--faint)}
+.keys-foot{font:400 32px/1.36 var(--serif);color:#bdb7ab;margin-top:30px;opacity:0;max-width:1600px}
+.keys-foot .m{background-size:0% 3px}
+
+/* contrast: imperative vs declared, bands aligned row by row */
+.ct-layer{display:grid;grid-template-columns:minmax(0,1fr) 72px minmax(0,1fr);grid-auto-rows:auto;column-gap:0;row-gap:0;align-content:start}
+.ct-bar{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) 72px minmax(0,1fr);margin-bottom:10px}
+.ct-bar div{font:600 14px var(--mono);letter-spacing:2px;text-transform:uppercase;color:var(--soft);opacity:0}
+.ct-bar div:first-child{color:var(--you)}.ct-bar div:last-child{color:var(--model)}
+.ct-l{background:var(--panel);border-left:1px solid var(--rule);border-right:1px solid var(--rule);padding:10px 0;opacity:0;position:relative}
+.ct-l.first{border-top:1px solid var(--rule);border-radius:12px 12px 0 0}
+.ct-l.last{border-bottom:1px solid var(--rule);border-radius:0 0 12px 12px}
+.ct-l.config{background:#15201a}
+.ct-l::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--gold);opacity:.55}
+.ct-l.config::before{background:var(--model)}
+.ct-r{align-self:stretch;display:flex;flex-direction:column;padding:6px 0}
+.ct-r .panel{flex:1;opacity:0;border-left:4px solid #f0c6748c}
+.ct-r.config .panel{border-left-color:#9fe0b48c;background:#15201a}
+.ct-r .bar{height:34px;font-size:13px}
+.ct-r .body{padding:10px 0 12px}
+.ct-mid{position:relative;opacity:0}
+.ct-mid::before{content:"";position:absolute;left:10px;right:10px;top:50%;height:2px;background:var(--gold);opacity:.6}
+.ct-mid.config::before{background:var(--model)}
+.ct-mid span{position:absolute;left:0;right:0;top:calc(50% - 22px);text-align:center;font:600 11px var(--mono);letter-spacing:1px;color:var(--faint);text-transform:uppercase}
+.ct-code .ln{padding:0 18px 0 22px}
+.ct-code .ln::before{display:none}
+.ct-cap{grid-column:1/-1;margin-top:14px;font:22px var(--mono);color:var(--gold);height:30px;position:relative}
+.ct-cap div{position:absolute;left:0;top:0;opacity:0}
+
+/* this animation lists more tools than the template expects: tighter card rows */
+.card .item{padding:10px 20px;margin-bottom:9px}
+/* ── end of this animation's own styles ── */
+
+/* overlays */
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:0 160px;background:var(--bg);opacity:0;pointer-events:none}
+.overlay .big{font:400 180px/1 var(--serif);color:var(--model);letter-spacing:-6px;margin-bottom:10px}
+.overlay .head{font:400 88px/1.08 var(--serif);letter-spacing:-2px;max-width:1500px}
+.overlay .sub{font:20px var(--mono);color:var(--faint);margin-top:34px;letter-spacing:1px}
+.overlay .kicker{font:600 18px var(--mono);color:var(--model);letter-spacing:5px;text-transform:uppercase;margin-bottom:28px}
+.lockup{align-self:center;display:flex;flex-direction:column;align-items:center;gap:80px}
+.lk-mark{font:400 104px/1 var(--serif);letter-spacing:-2px;color:var(--paper);display:flex;align-items:center;gap:32px;white-space:nowrap}
+.lk-mark .ico{width:1.15em;height:1.15em;vertical-align:0}
+.lk-row{display:flex;gap:56px}
+.lk-item{display:flex;flex-direction:column;align-items:center;gap:14px;font:500 15px var(--mono);letter-spacing:2px;color:var(--soft);opacity:0}
+.lk-item .ico{width:72px;height:72px}
+.overlay .line{height:2px;width:0;background:var(--model);margin:40px 0 0}
+.overlay .head .m{background-size:0% 5px;background-position:0 94%}
+.overlay .opener{font:400 66px/1.3 var(--sans);color:#e8e1d4;max-width:1500px;letter-spacing:-.5px}
+.overlay .opener .c{opacity:0}
+.overlay .opener-who{font:600 20px var(--mono);color:var(--you);letter-spacing:4px;text-transform:uppercase;margin-bottom:30px}
+.caret{display:inline-block;width:.5em;height:1em;background:var(--you);vertical-align:-.12em;margin-left:4px}
+
+.hud{position:absolute;right:20px;top:16px;font:13px var(--mono);color:var(--faint);background:#000a;padding:8px 12px;border-radius:6px;transition:opacity .4s;z-index:10}
+.hud.off{opacity:0}
+.tc{position:absolute;left:20px;top:16px;font:13px var(--mono);color:var(--gold);background:#000a;padding:8px 12px;border-radius:6px;z-index:10;opacity:0;transition:opacity .3s}
+.tc.on,.paused .tc{opacity:1}
+
+/* chapter picker: display:none until `c`, so it never reaches a recording */
+.picker{position:absolute;inset:0;z-index:20;display:none;flex-direction:column;padding:64px 96px 56px;background:#0b0d10f2;backdrop-filter:blur(6px)}
+.picker.open{display:flex}
+.pk-head{display:flex;align-items:baseline;gap:28px;padding-bottom:22px;border-bottom:1px solid var(--rule);margin-bottom:26px}
+.pk-title{font:400 40px/1.1 var(--serif);letter-spacing:-.5px;color:var(--paper)}
+.pk-filter{font:20px var(--mono);color:var(--gold);min-width:120px}
+.pk-keys{margin-left:auto;font:14px var(--mono);color:var(--faint);letter-spacing:1px}
+.pk-grid{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:26px;align-content:start;padding:4px;scrollbar-width:none}
+.pk-grid::-webkit-scrollbar{display:none}
+.pk-card{background:var(--panel);border:1px solid var(--rule);border-radius:12px;overflow:hidden;cursor:pointer}
+.pk-card.on{border-color:var(--model);box-shadow:0 0 0 2px #9fe0b455,0 20px 60px #0008}
+.pk-thumb{position:relative;aspect-ratio:16/9;overflow:hidden;background:var(--bg)}
+.pk-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:0 24px;text-align:center;font:400 22px/1.25 var(--serif);color:var(--faint)}
+.pk-frame{position:absolute;left:0;top:0;width:1920px;height:1080px;border:0;transform-origin:0 0;opacity:0;transition:opacity .3s;pointer-events:none}
+.pk-frame.ready{opacity:1}
+.pk-meta{display:flex;align-items:baseline;gap:12px;padding:12px 16px 14px;border-top:1px solid var(--rule)}
+.pk-meta b{font:500 16px var(--mono);color:var(--model);letter-spacing:1px}
+.pk-name{flex:1;min-width:0;font:400 19px/1.25 var(--serif);color:var(--paper);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pk-time{font:13px var(--mono);color:var(--faint);white-space:nowrap}
+.still .hud,.still .tc{display:none}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="top" id="top"><div class="ch"><span class="num" id="tnum"></span><span class="title" id="ttitle"></span></div><span class="src" id="tsrc"></span></div>
+  <div class="rule" id="trule"></div>
+  <div class="content" id="content"></div>
+  <div class="progress" id="progress"></div>
+  <div class="brand" id="brand"></div>
+  <div class="overlay" id="overlay"></div>
+  <div class="hud" id="hud">space pause · ← → step · shift ← → chapter · , . 1s · &lt; &gt; 5s · home chapter start · r restart · c chapters · h hide</div>
+  <div class="tc" id="tc"></div>
+  <div class="picker" id="picker"></div>
+</div>
+<script>
+// ── config ────────────────────────────────────────────────────────────────
+// Everything the viewer reads lives in SHOW_CONFIG, CHAPTERS and CLIPS.
+// Quotes are verbatim from the repos (paths in each chapter's source line);
+// "…" marks a cut. Panels labelled "illustration" are invented to contrast.
+const SHOW_CONFIG = {
+  modelLabel: "the o family",
+  youLabel: "the question",
+  brand: "o family · declarative",
+  intro: {
+    kicker: "{{icon:family}} o family · Go tools on oden and ochazuke",
+    head: "Declare it as [[data]], and the machinery can [[read it, check it, generate from it and mount it.]]",
+    sub: "nouns · verbs · bindings · catalogs · stories   —   real code, real recordings",
+  },
+  opener: null,
+  // the first and last slides: the family mark, then each member with a mark
+  // of its own (libraries, the host, then the tools)
+  front: { name: "o family", mark: "{{icon:family}} o family",
+    items: ["{{icon:ochazuke}} ochazuke", "{{icon:oden}} oden", "{{icon:matomeru}} matomeru", "{{icon:o-ai}} o-ai", "{{icon:o-inventory}} o-inventory", "{{icon:o-proj}} o-proj"] },
+  back: { name: "o family (end)", mark: "{{icon:family}} o family",
+    items: ["{{icon:ochazuke}} ochazuke", "{{icon:oden}} oden", "{{icon:matomeru}} matomeru", "{{icon:o-ai}} o-ai", "{{icon:o-inventory}} o-inventory", "{{icon:o-proj}} o-proj"] },
+  outro: {
+    kicker: "{{icon:family}} o family · the point",
+    head: "Declared once as data, [[every app gets it for free.]] [[Done imperatively, every app writes it again.]]",
+    sub: "{{icon:oden}} oden · {{icon:ochazuke}} ochazuke · {{icon:matomeru}} matomeru · {{icon:o-md}} o-md · {{icon:o-git}} o-git · {{icon:o-json}} o-json · {{icon:o-story}} o-story",
+  },
+};
+const params = new URLSearchParams(location.search);
+const SPEED = parseFloat(params.get("speed") || "1");
+
+// CLIPS:BEGIN (tools/build.sh writes this)
+const CLIPS = {
+ "1-mtm-extensions": {
+  "src": "clips/1-mtm-extensions.webm",
+  "dur": 21680,
+  "cues": [
+   {
+    "at": 0,
+    "keys": "Extensions page",
+    "text": "rows from PATH: o-NAME answering catalog"
+   },
+   {
+    "at": 2455,
+    "keys": "n",
+    "text": "extension.register git: reads o-git catalog"
+   },
+   {
+    "at": 3986,
+    "keys": "ctrl+j",
+    "text": "the Git tab, laid out from the catalog page"
+   },
+   {
+    "at": 7443,
+    "keys": "tab",
+    "text": "the next focus stop"
+   },
+   {
+    "at": 8680,
+    "keys": "?",
+    "text": "help from the rows o-git declared"
+   },
+   {
+    "at": 12332,
+    "keys": "ctrl+k",
+    "text": "back to Extensions"
+   },
+   {
+    "at": 14277,
+    "keys": "n",
+    "text": "extension.register md"
+   },
+   {
+    "at": 15808,
+    "keys": "ctrl+j ctrl+j",
+    "text": "the Docs tab: rows of the pinned project"
+   }
+  ]
+ },
+ "2-mtm-features": {
+  "src": "clips/2-mtm-features.webm",
+  "dur": 31520,
+  "cues": [
+   {
+    "at": 1485,
+    "keys": "ctrl+space",
+    "text": "the palette: words resolve to noun.verb"
+   },
+   {
+    "at": 2851,
+    "keys": "project pin",
+    "text": "its parameter is a project: the list is projects"
+   },
+   {
+    "at": 6831,
+    "keys": "'",
+    "text": "page.pick: every page in one chooser"
+   },
+   {
+    "at": 11424,
+    "keys": "?",
+    "text": "bindings help: what this focus answers"
+   },
+   {
+    "at": 13958,
+    "keys": "S",
+    "text": "pick view: any noun and mode"
+   },
+   {
+    "at": 16493,
+    "keys": "S",
+    "text": "table view: a noun's keys by mode"
+   },
+   {
+    "at": 20175,
+    "keys": "> > >",
+    "text": "pane.grow: the divider moves"
+   },
+   {
+    "at": 22234,
+    "keys": "< =",
+    "text": "pane.shrink, pane.reset"
+   },
+   {
+    "at": 24432,
+    "keys": ",",
+    "text": "settings.edit: the Settings page"
+   },
+   {
+    "at": 27184,
+    "keys": "l",
+    "text": "step a value: written at once"
+   },
+   {
+    "at": 28728,
+    "keys": "u",
+    "text": "take the change back"
+   }
+  ]
+ },
+ "3-o-md": {
+  "src": "clips/3-o-md.webm",
+  "dur": 19520,
+  "cues": [
+   {
+    "at": 1522,
+    "keys": "]x",
+    "text": "next checklist item"
+   },
+   {
+    "at": 2557,
+    "keys": "o",
+    "text": "open an item below, insert mode"
+   },
+   {
+    "at": 5458,
+    "keys": "esc",
+    "text": "normal mode; the change is already written"
+   },
+   {
+    "at": 6432,
+    "keys": "x",
+    "text": "markdown.toggle"
+   },
+   {
+    "at": 7711,
+    "keys": "n",
+    "text": "markdown.note: a note under the item"
+   },
+   {
+    "at": 12114,
+    "keys": "g s",
+    "text": "doc.send-notes: choose an agent pane"
+   },
+   {
+    "at": 16050,
+    "keys": "?",
+    "text": "the same rows as help"
+   }
+  ]
+ },
+ "4-csv": {
+  "src": "clips/4-csv.webm",
+  "dur": 27880,
+  "cues": [
+   {
+    "at": 1494,
+    "keys": "l l",
+    "text": "grid.move, two columns right"
+   },
+   {
+    "at": 2310,
+    "keys": "s",
+    "text": "column.sort on the role column"
+   },
+   {
+    "at": 3863,
+    "keys": "+",
+    "text": "sheet.addColumn through a prompt"
+   },
+   {
+    "at": 6612,
+    "keys": "0 V j",
+    "text": "row start, visual-row mode, extend"
+   },
+   {
+    "at": 8583,
+    "keys": "t u",
+    "text": "selection.transform upper"
+   },
+   {
+    "at": 10196,
+    "keys": "i",
+    "text": "cell.edit: insert mode in a prompt"
+   },
+   {
+    "at": 13402,
+    "keys": "u u",
+    "text": "sheet.undo, twice"
+   },
+   {
+    "at": 16011,
+    "keys": "?",
+    "text": "the grid, sheet and app rows"
+   },
+   {
+    "at": 19217,
+    "keys": ":",
+    "text": "palette: transform lists its transformations"
+   },
+   {
+    "at": 24076,
+    "keys": "l l /",
+    "text": "column.filter: the filter field"
+   }
+  ]
+ },
+ "5-o-json": {
+  "src": "clips/5-o-json.webm",
+  "dur": 26720,
+  "cues": [
+   {
+    "at": 1492,
+    "keys": "j j j",
+    "text": "the structure tree: items"
+   },
+   {
+    "at": 3163,
+    "keys": "tab j enter",
+    "text": "the table, one item in the detail"
+   },
+   {
+    "at": 5929,
+    "keys": "j j l",
+    "text": "step into owner"
+   },
+   {
+    "at": 8098,
+    "keys": "h q",
+    "text": "back out, close"
+   },
+   {
+    "at": 10465,
+    "keys": "/",
+    "text": "viewer.search over every path"
+   },
+   {
+    "at": 12873,
+    "keys": "v",
+    "text": "the values as indented JSON"
+   },
+   {
+    "at": 16334,
+    "keys": "t",
+    "text": "type filter"
+   },
+   {
+    "at": 18642,
+    "keys": "?",
+    "text": "the same help, other rows"
+   },
+   {
+    "at": 21846,
+    "keys": ":",
+    "text": "the palette: viewer verbs"
+   }
+  ]
+ },
+ "6-ochazuke-demo": {
+  "src": "clips/6-ochazuke-demo.webm",
+  "dur": 39840,
+  "cues": [
+   {
+    "at": 1481,
+    "keys": ": page",
+    "text": "completion: verbs, then the pages as choices"
+   },
+   {
+    "at": 7305,
+    "keys": "> > > < =",
+    "text": "the Library divider"
+   },
+   {
+    "at": 11549,
+    "keys": "'",
+    "text": "page.pick"
+   },
+   {
+    "at": 15557,
+    "keys": "tab yy",
+    "text": "yank a line of Notes"
+   },
+   {
+    "at": 17373,
+    "keys": "\"a yy",
+    "text": "into register a"
+   },
+   {
+    "at": 18400,
+    "keys": "ctrl+y",
+    "text": "yank history"
+   },
+   {
+    "at": 22881,
+    "keys": "enter",
+    "text": "the path picker, from the Paths field's line"
+   },
+   {
+    "at": 25073,
+    "keys": "~/code/acme-web/",
+    "text": "type a path; the preview follows"
+   },
+   {
+    "at": 27501,
+    "keys": "ctrl+n",
+    "text": "a file and its first lines"
+   },
+   {
+    "at": 32831,
+    "keys": "s",
+    "text": "the Settings page, on Appearance"
+   },
+   {
+    "at": 35516,
+    "keys": "l u",
+    "text": "change a value, take it back"
+   }
+  ]
+ },
+ "7-shell": {
+  "src": "clips/7-shell.webm",
+  "dur": 22360,
+  "cues": [
+   {
+    "at": 0,
+    "keys": "mtm extension available",
+    "text": "what PATH offers: o-NAME answering catalog"
+   },
+   {
+    "at": 5710,
+    "keys": "o-md catalog",
+    "text": "the Docs page, declared as data"
+   },
+   {
+    "at": 11021,
+    "keys": "mtm config export",
+    "text": "every setting and key row, as files"
+   },
+   {
+    "at": 15543,
+    "keys": "bindings.reference.json",
+    "text": "o-md's g s row, now one of mtm's rows"
+   }
+  ]
+ },
+ "8-o-story": {
+  "src": "clips/8-o-story.webm",
+  "dur": 58400,
+  "cues": [
+   {
+    "at": 0,
+    "keys": "cat",
+    "text": "a story is data: a page, a script, an expect"
+   },
+   {
+    "at": 5196,
+    "keys": "o-story",
+    "text": "the index: every story, by area"
+   },
+   {
+    "at": 8607,
+    "keys": "}",
+    "text": "walk the areas in drawing order"
+   },
+   {
+    "at": 10954,
+    "keys": "/3j",
+    "text": "filter the motions list"
+   },
+   {
+    "at": 13000,
+    "keys": "p",
+    "text": "play its script, one event at a time"
+   },
+   {
+    "at": 15066,
+    "keys": "l",
+    "text": "the script's 3"
+   },
+   {
+    "at": 16932,
+    "keys": "l",
+    "text": "its j: the expect holds, focus a4"
+   },
+   {
+    "at": 21065,
+    "keys": "enter",
+    "text": "open it live and press keys"
+   },
+   {
+    "at": 23452,
+    "keys": "q",
+    "text": "leaving asks a name: the session was recorded"
+   },
+   {
+    "at": 27545,
+    "keys": "o-story history",
+    "text": "the ring of 5 and the saved names"
+   },
+   {
+    "at": 31437,
+    "keys": "o-story run markdown",
+    "text": "headless: every markdown story"
+   },
+   {
+    "at": 37094,
+    "keys": "o-story run mine",
+    "text": "a copy with one more j fails its golden"
+   },
+   {
+    "at": 46062,
+    "keys": "o-story explore",
+    "text": "every answering key, breadth first, depth 2"
+   }
+  ]
+ },
+ "9-explore-watch": {
+  "src": "clips/9-explore-watch.webm",
+  "dur": 28320,
+  "cues": [
+   {
+    "at": 0,
+    "keys": "explore motions --watch",
+    "text": "ten story apps, one after another"
+   },
+   {
+    "at": 12134,
+    "keys": "a",
+    "text": "watch.pause"
+   },
+   {
+    "at": 13988,
+    "keys": "l",
+    "text": "watch.step"
+   },
+   {
+    "at": 15244,
+    "keys": "a",
+    "text": "run on"
+   },
+   {
+    "at": 24274,
+    "keys": "q",
+    "text": "stop watching: the rest run unwatched; the report prints"
+   }
+  ]
+ }
+};
+// CLIPS:END
+
+// Section 01's contrast. Bands pair up across the two sides by index: a
+// "code" band sits level with code, the "config" band with config. @N lines
+// light together (glow group N) on both sides.
+const CONTRAST = {
+  left: { label: "imperative · illustration (not real code)", bands: [
+    { kind: "code", lines: [
+      "func (m *Model) handleKey(k tea.KeyMsg) (tea.Model, tea.Cmd) {",
+      "  key := k.String()",
+      "@1|  if m.inputFocused() && m.mode == Insert {",
+      "@1|    if key != \"esc\" && key != \"enter\" {",
+      "@1|      return m.input.Update(k) // typing passes through",
+      "@1|    }",
+      "@1|  }",
+      "@4|  if m.modal != nil { return m.modal.HandleKey(k) } // modal first",
+      "@4|  if m.palette.Open() || m.chooser.Open() { return m.overlayKey(k) }",
+      "@4|  if m.terminalFocused() && key != m.leader { return m, m.term.Send(k) }",
+      "@2|  if m.pending != \"\" { // g, d, ctrl+a …",
+      "@2|    key = m.pending + \" \" + key",
+      "@2|  }",
+      "  if d, ok := digit(key); ok && m.pending == \"\" {",
+      "    m.count = m.count*10 + d",
+      "    return m, nil",
+      "  }",
+    ]},
+    { kind: "config", lines: [
+      "  switch key {",
+      "@3|  case \"x\": if m.onTask() { m.toggle() }",
+      "@3|  case \"n\": if m.onItem() { m.addNote() }",
+      "@2|  case \"d\", \"g\": m.pending = key; return m, nil",
+      "@2|  case \"d d\": m.deleteBlock(m.count)",
+      "@2|  case \"g O\": m.openOutline()",
+      "  default:",
+      "    m.status = \"unknown key \" + key",
+      "  }",
+    ]},
+    { kind: "code", lines: [
+      "  m.pending, m.count = \"\", 0 // clear the prefix",
+      "@5|  m.hints = m.hintsFor(m.mode) // update the hints by hand",
+      "@5|  // …and remember to add it to the help text",
+      "  return m, nil",
+      "}",
+    ]},
+  ]},
+  right: { bands: [
+    { kind: "code", label: "code · resolve.go dispatchIn, in effect (simplified)", lines: [
+      "@4|for _, lv := range r.walk(focus) { // capture levels, then the focus outward",
+      "@1|  hit, longer := r.lookup(lv, mode, prefix+key) // the mode's table",
+      "@2|  if longer { return wait() } // a sequence: g, d, ctrl+a",
+      "  if hit != nil { return run(lv, hit) }",
+      "}",
+    ]},
+    { kind: "config", label: "config · ochazuke/markdown/verbs.go:171 (cut)", lines: [
+      "@1|Mode(\"normal\").",
+      "@3|Bind(\"x\", ochazuke.Do(DocNoun+\".toggle\").Guard(\"markdown-on-task\")).",
+      "@3|Bind(\"n\", ochazuke.Do(DocNoun+\".note\").Guard(\"markdown-on-item\")).",
+      "@2|Bind(\"d d\", ochazuke.Do(DocNoun+\".delete\")).",
+      "@2|Bind(\"g O\", ochazuke.Do(DocNoun+\".outline\")).",
+      "…",
+    ]},
+    { kind: "code", label: "code · after the row runs", lines: [
+      "// run(lv, hit): the row's Request, noun.verb",
+      "@5|// the footer hints and ? help read the same table",
+      "// unknown keys and prefix timeouts: the resolver's",
+    ]},
+  ]},
+  // what each glow group means, shown under the panels as it lights
+  groups: {
+    1: "insert and prompt passthrough  ↔  a mode table per mode",
+    4: "modal, palette, chooser, live pane  ↔  the focus walk and its capture levels",
+    2: "pending g, d, ctrl+a  ↔  sequences in the keys",
+    3: "if onTask(), if onItem()  ↔  a named guard on the row",
+    5: "hints and help by hand  ↔  read from the rows",
+  },
+};
+const BINDING = [
+  "// ochazuke/noun.go:79 (comments cut)",
+  "type Binding struct {",
+  "  @1|Mode     string            `json:\"mode,omitempty\"`",
+  "  @1|Noun     string            `json:\"noun,omitempty\"`",
+  "  Instance string            `json:\"instance,omitempty\"`",
+  "  @1|Request  Request           `json:\"request\"`",
+  "  @1|Keys     string            `json:\"keys,omitempty\"`",
+  "  Pattern  string            `json:\"pattern,omitempty\"`",
+  "  From     map[string]string `json:\"from,omitempty\"`",
+  "  @2|When     string            `json:\"when,omitempty\"`",
+  "  Capture  bool              `json:\"capture,omitempty\"`",
+  "  Hint     string            `json:\"hint,omitempty\"`",
+  "  Hidden   bool              `json:\"hidden,omitempty\"`",
+  "  Help     string            `json:\"help,omitempty\"`",
+  "}",
+];
+const STORY = [
+  "// cmd/o-story/stories/motions/spill-up.json",
+  "{",
+  "  \"name\": \"spill: k at the first row\",",
+  "  \"area\": \"motions\",",
+  "  @1|\"page\": { \"focus\": \"b1\",",
+  "  @1|  \"lists\": [ {\"id\": \"a\", \"rows\": 2},",
+  "  @1|             {\"id\": \"b\", \"rows\": 3} ] },",
+  "  @2|\"script\": [ \"k\" ],",
+  "  @3|\"expect\": { \"focus\": \"a2\" }",
+  "}",
+];
+const ODEN = [
+  "// oden/README.md:15",
+  "app := oden.New(\"hello\", os.Args[1:], oden.WithBuiltins())",
+  "app.Cmd(\"greet\", \"say hello\", func(c *oden.Ctx) error {",
+  "  return c.Printf(\"hello, %s\\n\", c.Arg(0, \"world\"))",
+  "}, \"hi\")",
+  "os.Exit(oden.Report(os.Stderr, \"hello\", app.Run(context.Background())))",
+  "",
+  "// matomeru/cmd/mtm/oden.go:39 (cut)",
+  "app := oden.New(\"mtm\", args, … oden.WithBuiltins(),",
+  "  @1|oden.WithPrefixes(\"o\"), oden.WithFS(familyFS{hidden: hiddenTools}) …)",
+];
+const PREFIX = [
+  "# oden/README.md, the resolution rules as a sketch",
+  "$ mtm web …     # runs mtm-web from PATH",
+  "@1|$ mtm ai …      # WithPrefixes(\"o\"): runs o-ai",
+  "@2|$ mtm ta …      # task: nothing else starts with ta",
+  "@2|$ horror bio    # biographies, even with",
+  "               # horror-biographies-freddie-kruger on PATH",
+  "$ horror b      # ambiguous: biographies, books",
+];
+const EXT_VERBS = [
+  "// matomeru/cmd/mtm/extensions.go:369",
+  "a.r.Define(\"extension\").",
+  "  @1|Verb(\"register\", a.registerExtension, \"Register a family tool's catalog under NAME …\").Positional(\"name\").",
+  "  Verb(\"list\", a.listExtensions, \"List the registered extensions\").Fetch().",
+  "  @1|Verb(\"available\", a.availableExtensions, \"List the family tools on PATH (o-NAME answering catalog) …\").Fetch().Quiet().",
+  "  Verb(\"refresh\", a.refreshExtension, \"Read a registered extension's catalog again …\").Positional(\"name\").",
+  "  Verb(\"remove\", a.removeExtension, \"Unregister an extension …\").Positional(\"name\").Confirm(…)",
+];
+const SCOPE = [
+  "// matomeru/cmd/mtm/extension_scope.go:15 (cut)",
+  "// Extension rows belong to projects. A mounted row's project is the first",
+  "// of (extRowOwner):",
+  "//",
+  "@1|//  1. its recorded owner (ext_rows, work.ExtRowOwner): the context project",
+  "@1|//     when one of the extension's verbs made the row … or first acted on it …",
+  "//     … a record is never overwritten, so recorded rows never move.",
+  "@2|//  2. its path: the first path-like field (extPathFields), ~ expanded and",
+  "@2|//     cleaned, under the projects' attached directories …",
+  "@3|//  3. unassociated: a path no project holds.",
+];
+const CATALOG = [
+  "\"pages\": [ {",
+  "  \"id\": \"docs\", \"title\": \"Docs\",",
+  "  \"layout\": \"split\",",
+  "  \"lists\": [ { \"id\": \"docs/docs\",",
+  "    \"noun\": \"doc\", \"title\": \"Docs\" } ],",
+  "  \"detail\": { \"kind\": \"markdown\",",
+  "    \"pathField\": \"path\" } } ]",
+];
+const GS_ROW = [
+  "{ \"mode\": \"normal\",",
+  "  \"noun\": \"doc\",",
+  "  \"request\": { \"verb\": \"send-notes\",",
+  "               \"noun\": \"doc\" },",
+  "  \"keys\": \"g s\" }",
+];
+
+const CHAPTERS = [
+{
+  title: "The theme: data, not code",
+  src: "ochazuke/README.md:13 · AGENTS.md:90",
+  beats: [
+    { type: "quote", who: "{{icon:ochazuke}} ochazuke · README", small: true,
+      text: "A Go TUI framework on Bubble Tea v2 where [[nouns, verbs and keybindings are data,]] so every action in your app is also a command you can run from the shell." },
+    { type: "contrast", spec: CONTRAST },
+    { type: "thread", messages: [
+      { who: "model", text: [
+        "A binding row is a request: one registered operation, its arguments, a guard by name.",
+        "\"A `Func` row is not allowed: `Binding` has no field for Go code.\" [[So anything that can read a row can use it]] — dispatch, help, the CLI, a test.",
+      ], code: { blocks: [{ label: "noun.go · the whole row", lines: BINDING }] }, links: true },
+    ]},
+  ],
+},
+{
+  title: "The o family: what is built, what is planned",
+  src: "~/proj · ~/hub/o-plans/TODO.md:125-131",
+  beats: [
+    { type: "thread", messages: [
+      { who: "model", text: [
+        "Two libraries, one host, many small tools. Each tool is a Go bin that declares its nouns, verbs, keys and pages as data.",
+        "[[What would be painful without data:]] stories, a state explorer, and a checker for the keys themselves. o-story gets its own chapter at the end (10).",
+      ], cards: [
+        { cls: "good", title: "Built", items: [
+          "{{icon:oden}} oden · subcommand CLIs, bins on PATH, prefix matching",
+          "!{{icon:ochazuke}} ochazuke · Vim-style, modal, TUI Framework",
+          "{{icon:matomeru}} matomeru (mtm) · the workspace that hosts the rest",
+          "{{icon:o-md}} o-md · {{icon:o-git}} o-git · {{icon:o-json}} o-json · {{icon:o-csv}} o-csv · {{icon:o-ai}} o-ai · {{icon:o-inventory}} o-inventory · {{icon:o-proj}} o-proj",
+          "!{{icon:o-story}} o-story · storybook-style live testing · optionally headless · record and replay to assert against results",
+          "{{icon:o-story}} o-story explore · walks every key: traps, static traps, hints · headless by default, --watch to see it",
+          "{{icon:ochazuke}} ochazuke keybinding · a keybinding sandbox",
+        ]},
+        { cls: "risk", title: "Planned", items: [
+          "keybinding checker · overlaps and shadowing, plus a graph check of modes and focus for traps and unreachable states",
+          "binding / config designer · load the actions, customise",
+        ]},
+      ]},
+    ]},
+  ],
+},
+{
+  title: "{{icon:oden}} oden: commands are names on PATH",
+  src: "oden/README.md · oden/catalog.go:163 · mtm/oden.go:39",
+  beats: [
+    { type: "thread", messages: [
+      { who: "model", text: [
+        "\"Any executable named `<bin>-<sub>` on PATH is the command `sub` of `bin`.\" A third party adds `mtm web` by installing `mtm-web`.",
+        "[[Declared:]] a command list, or a file on PATH. [[Free:]] help, aliases, and the external's own subcommands, read from its `catalog`.",
+      ], code: { blocks: [{ label: "a bin, and mtm's", lines: ODEN }] } },
+      { who: "model", text: [
+        "Resolution: \"an exact name or alias, else the one command with a name or alias starting with the word\".",
+        "[[Descendants never make a prefix ambiguous]] — the rule oden took from hiiro.",
+      ], code: { lang: "md", blocks: [{ label: "how a word resolves", lines: PREFIX }] }, links: true },
+    ]},
+  ],
+},
+{
+  title: "{{icon:ochazuke}} ochazuke: one row, many readers",
+  src: "noun.go · model.go · resolve.go · explore/ · cli/",
+  beats: [
+    { type: "fan",
+      source: { label: "o-md's catalog · one key row", lines: GS_ROW },
+      targets: [
+        { name: "key dispatch", verb: "resolves it", lines: ["g → <chip>normal g</chip> pending · s → doc.send-notes", "<faint>sequences · modes · guards · capture</faint>"] },
+        { name: "footer", verb: "hints it", lines: ["g s md-doc.send-notes · n new · …"] },
+        { name: "? help", verb: "lists it", lines: ["g s   md-doc.send-notes   Send the open, …", "<faint>views: here · pick · table</faint>"] },
+        { name: "palette", verb: "offers it", lines: [": send-notes   <faint>verbs, nouns, then choices</faint>"] },
+        { name: "o-md CLI", verb: "runs it", lines: ["$ o-md doc send-notes --target FILE"] },
+      ],
+      glow: ["g s", "send-notes"],
+      caption: "[[One row: the dispatcher, the footer, help, the palette and the CLI all read it.]] None of them has a list of keys of its own." },
+    { type: "fan",
+      source: { label: "the same row, as data", lines: GS_ROW },
+      targets: [
+        { name: "{{icon:matomeru}} mtm", verb: "mounts it", lines: ["catalog bindings[] → md-doc.send-notes", "<faint>a row on a key mtm binds app-wide is dropped</faint>"] },
+        { name: "bindings.json", verb: "overrides it", lines: ["{\"mode\": \"normal\", \"noun\": \"doc\", \"keys\": \"g s\", \"request\": null}", "<faint>same noun, mode, keys and when: replaced</faint>"] },
+        { name: "config export", verb: "writes it", lines: ["bindings.reference.json", "<faint>every stored row, loadable as bindings.json</faint>"] },
+        { name: "notices", verb: "warn about it", lines: ["<faint>a user row a guarded default still answers before</faint>", "<faint>bindings check: rows that would be skipped</faint>"] },
+        { name: "{{icon:o-story}} o-story explore", verb: "presses it", lines: ["every key that answers, breadth first", "<faint>honest hints · a way home · modes no row leaves</faint>"] },
+      ],
+      glow: ["g s", "send-notes"],
+      caption: "[[The same row is overridden, exported, checked and explored.]] The explorer walks the graph (built, see 10); a keybinding checker that analyzes it from the data is planned." },
+    { type: "clip", clip: "6-ochazuke-demo", kicker: "ochazuke run · the demo",
+      head: "Features [[no page wrote]]",
+      caption: "ochazuke's own demo in a sandbox HOME · keys typed by the vhs tape",
+      free: { title: "comes from the declared data", items: [
+        "the palette and its completion: operations and their parameters",
+        "page picker, registers, yank history: framework rows",
+        "the path picker with preview; the Settings page from the settings schema",
+      ]}},
+    { type: "clip", clip: "2-mtm-features", kicker: "the same features, in mtm",
+      head: "Same rows, [[another app]]",
+      caption: "mtm in a sandbox (temp --data and --config, a socket nothing listens on)",
+      free: { title: "comes from the declared data", items: [
+        "`project pin`'s parameter is a project: the palette lists projects",
+        "`?` help views read the binding tables",
+        "Settings: every change written at once, `u` takes it back; ext.git and ext.md are sections there",
+      ]}},
+    { type: "clip", clip: "7-shell", kicker: "the same data, from the shell",
+      head: "What the TUI reads, [[a script can read]]",
+      caption: "mtm and o-md in a sandbox HOME; config export writes a reference, never the live files",
+      free: { title: "comes from the declared data", items: [
+        "`extension available`: every o-NAME on PATH that answers `catalog`",
+        "a page declared in o-md's catalog",
+        "`config export`: settings and every key row, as files",
+      ]}},
+  ],
+},
+{
+  title: "{{icon:matomeru}} matomeru: a thin host",
+  src: "matomeru/README.md · docs/BRIEF.md:71 · cmd/mtm/extension_scope.go",
+  beats: [
+    { type: "thread", messages: [
+      { who: "model", text: [
+        "\"A terminal workspace for coding agents: projects, tasks, notes, live agent panes, their turns and your reviews, gathered in one TUI.\"",
+        "\"Every action in the TUI is also a command.\" [[Extensions are a noun like any other:]] register, list, available, refresh, remove.",
+      ], code: { blocks: [{ label: "the extension noun", lines: EXT_VERBS }] }, links: true },
+      { who: "model", text: [
+        "Rows an extension shows still belong to projects, with no extension code for it: [[recorded from the focus or the pin, else the file's path, else unassociated.]]",
+      ], code: { blocks: [{ label: "extension_scope.go", lines: SCOPE }] }, links: true },
+      { who: "model", text: [
+        "\"Docs come from o-md …, an extension like o-ai or o-git, [[not from mtm's code]]\": mtm registers ochazuke's markdown detail kind, and the selected file is the inline editor.",
+      ]},
+    ]},
+    { type: "clip", clip: "1-mtm-extensions", kicker: "mtm · registering o-git and o-md", realtime: true,
+      head: "Two tabs, [[from two catalogs]]",
+      caption: "pinned project: docs-site · the Git and Docs pages list only its rows",
+      free: { title: "mtm wrote none of this", items: [
+        "the Git page: three lists and a record detail",
+        "the Docs page: a list beside the Markdown editor",
+        "their keys in the footer and in `?` help",
+      ]}},
+  ],
+},
+{
+  title: "Extensions answer catalog",
+  src: "o-md catalog · o-git catalog · mtm extension register",
+  beats: [
+    { type: "fan",
+      source: { label: "o-md catalog · pages[]", lines: CATALOG },
+      targets: [
+        { name: "a tab", verb: "mtm mounts", lines: ["… Extensions  Git  <chip>Docs</chip>", "<faint>after mtm's own pages, in registration order</faint>"] },
+        { name: "the list", verb: "rows of doc", lines: ["Title   Root   Modified", "<faint>doc list, with the pinned project's dirs</faint>"] },
+        { name: "the detail", verb: "kind: markdown", lines: ["the inline editor, committed on change"] },
+        { name: "keys", verb: "bindings[]", lines: ["g s md-doc.send-notes"] },
+        { name: "verbs", verb: "nouns[]", lines: ["md-doc.list · show · new · rename · note · check …"] },
+      ],
+      glow: ["markdown", "\\bdoc\\b", "Docs"],
+      caption: "mtm reads the catalog: [[the page, its nouns, verbs and key rows appear with no mtm code change.]]" },
+    { type: "clip", clip: "3-o-md", kicker: "o-md · a copy of a plans checklist",
+      head: "Item, tick, note, [[send]]",
+      caption: "a copy of ~/hub/o-plans/matomeru-features.md · the agent list comes from a stub tuios; nothing is sent",
+      free: { title: "rows o-md declared", items: [
+        "`x` markdown.toggle, `n` markdown.note: shared with the Docs page",
+        "`g s` doc.send-notes opens a chooser of agent panes",
+        "every change is written as it is made; no save key",
+      ]}},
+  ],
+},
+{
+  title: "Same keys, different apps",
+  src: "bindings list --all · mtm · o-md · csv · o-json",
+  beats: [
+    { type: "keys",
+      head: "The modes and keys are declared once in ochazuke. [[Every app gets them.]]",
+      apps: ["{{icon:matomeru}} mtm", "{{icon:o-md}} o-md", "{{icon:csv}} csv example", "{{icon:o-json}} o-json"],
+      rows: [
+        { keys: "j  k", cells: ["move rows", "move lines", "move cells", "move paths"] },
+        { keys: "i … esc", cells: ["edit (Docs)", "edit a block", "edit a cell", null] },
+        { keys: "u", cells: ["undo (Docs)", "undo", "undo", null] },
+        { keys: "?", cells: ["bindings.help", "bindings.help", "bindings.help", "bindings.help"] },
+        { keys: ":", cells: ["palette.open", "palette.open", "palette.open", "palette.open"] },
+        { keys: ">  <  =", cells: ["pane.grow …", "pane.grow …", "pane.grow …", "pane.grow …"] },
+        { keys: "\"a  @a", cells: ["registers, replay", "registers, replay", "registers, replay", "registers, replay"] },
+      ],
+      foot: "Each app adds only its own rows (cell.edit, viewer.search). [[Done imperatively, each app would write the modes, help and palette again.]] o-json is read-only: no insert mode." },
+  ],
+},
+{
+  title: "{{icon:ochazuke}} ochazuke demo:\ncsv viewer/editor",
+  src: "ochazuke/examples/csv · a copy of people.csv",
+  beats: [
+    { type: "clip", clip: "4-csv", kicker: "ochazuke/examples/csv · a copy of people.csv",
+      head: "A grid, [[the same modes]]",
+      caption: "never saved: the tape never presses ctrl+s",
+      free: { title: "rows the CSV app declared", items: [
+        "`s` column.sort · `+` sheet.addColumn · `t u` transform",
+        "`v` `V` `ctrl+v`: three visual modes in one table",
+        "`u` sheet.undo: every edit is one patch",
+      ]}},
+  ],
+},
+{
+  title: "{{icon:ochazuke}} ochazuke demo:\no-json",
+  src: "~/proj/o-json · a copy of its sample.json",
+  beats: [
+    { type: "clip", clip: "5-o-json", kicker: "o-json · a copy of its sample.json",
+      head: "A tree and a table, [[the same help]]",
+      caption: "read-only: o-json never writes a file",
+      free: { title: "rows o-json declared", items: [
+        "`/` viewer.search · `t` viewer.type · `v` viewer.raw",
+        "`enter` `l` `h`: step into a value and back",
+        "`?` and `:` came with the framework",
+      ]}},
+  ],
+},
+{
+  title: "{{icon:o-story}} o-story: storybook-style live testing",
+  src: "ochazuke/cmd/o-story · o-story README · stories/",
+  beats: [
+    { type: "thread", messages: [
+      { who: "model", text: [
+        "o-story: \"A story is a scenario as data: a synthetic page, a script of events, and what must hold afterwards.\"",
+        "Because it is data, [[one file is a test, a golden, a replay and a row in a generated table.]]",
+      ], code: { blocks: [{ label: "a real story", lines: STORY }] }, links: true },
+      { who: "model", text: [
+        "`o-story run` is headless and fails non-zero. A story without a final expect is compared with its `.golden` frame. Every TUI session is recorded, a ring of the last five, and `keep`, `replay` and `trim` work on them.",
+        "`o-story verbs` derives the verbs table from the stories; `go test` fails when it drifts.",
+        "[[The explorer walks the graph and is built; the keybinding checker would analyze it from the data and is planned.]]",
+      ]},
+    ]},
+    { type: "clip", clip: "8-o-story", to: 45800, kicker: "o-story · storybook-style live testing",
+      head: "Optionally headless; [[record and replay]] to assert against results",
+      caption: "o-story in a sandbox HOME · a copy of one story fails its golden; the repo's stories are untouched",
+      free: { title: "possible because a story is data", items: [
+        "replayed headless, or step by step beside its frame",
+        "diffed against its golden",
+        "sessions recorded, saved, trimmed",
+      ]}},
+    { type: "quote", who: "o-story · README · explore",
+      text: "It presses [[every key that answers,]] plus esc, enter, tab, … a wait and resizes, breadth first, and [[checks every state it reaches.]]", small: true },
+    { type: "clip", clip: "8-o-story", from: 45800, kicker: "o-story explore · headless",
+      head: "One story app, [[every answering key]]",
+      caption: "depth 2, 200 steps · the report: states visited, findings with their shortest key paths",
+      free: { title: "what it checks", items: [
+        "traps and static traps: a mode no row leaves",
+        "honest hints: a key the footer offers must work",
+        "panics, render fits, jobs settle, a way home",
+      ]}},
+    { type: "clip", clip: "9-explore-watch", rate: 2, kicker: "o-story explore --watch",
+      head: "A whole area, [[watched]]",
+      caption: "explore --watch: the walk across a whole area · same findings as headless",
+      free: { title: "optionally headless", items: [
+        "`--watch` draws each step, `--delay` paces it",
+        "ten story apps in turn; `a` pauses, `l` steps",
+        "`q`: the rest run unwatched, the same report prints",
+      ]}},
+  ],
+},
+];
+
+// ── helpers ───────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+// Icons: text anywhere may hold {{icon:NAME}}; after a segment is built every
+// one becomes the inline SVG ICONS[NAME]. An animation fills ICONS in its own
+// beats section (from its build), including ICONS.family, the mark a name
+// with none of its own falls back to; {{icon:-}} is an alias of family. With
+// no family mark either, a neutral tile. Only text nodes are touched.
+const ICONS = {};
+const ICON_RE = /\{\{icon:([\w-]+)\}\}/g;
+function iconize(root) {
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), hits = [];
+  while (walk.nextNode()) if (walk.currentNode.nodeValue.includes("{{icon:")) hits.push(walk.currentNode);
+  for (const n of hits) {
+    const t = n.nodeValue, frag = document.createDocumentFragment(); let i = 0, m;
+    ICON_RE.lastIndex = 0;
+    while ((m = ICON_RE.exec(t))) {
+      frag.append(t.slice(i, m.index));
+      const svg = ICONS[m[1] === "-" ? "family" : m[1]] || ICONS.family, s = el("span", "ico" + (svg ? "" : " none"));
+      if (svg) s.innerHTML = svg;
+      frag.append(s); i = ICON_RE.lastIndex;
+    }
+    frag.append(t.slice(i)); n.replaceWith(frag);
+  }
+}
+const EASE = "cubic-bezier(.2,.7,.2,1)";
+const anims = [];
+// Things that are not Web Animations (a <video>) register a sync(clock,
+// playing) here; seek and every tick call it with the segment clock.
+const syncs = [];
+let marks = [];   // seek points in the current segment (ms)
+const mark = t => marks.push(t);
+let seen = new WeakSet();
+// Every animation is created up front with a delay and held paused; the
+// player sets their time from its own clock, so seeking is exact. Only the
+// first one on a node fills backwards; later ones fill forwards, so they
+// cannot override the earlier ones before they start.
+function A(node, frames, delay, duration, easing = EASE) {
+  const fill = seen.has(node) ? "forwards" : "both";
+  seen.add(node);
+  const a = node.animate(frames, { delay, duration, easing, fill });
+  a.pause();
+  a.currentTime = 0;
+  anims.push(a);
+  return a;
+}
+const fadeIn = (n, t, d = 500) => A(n, [{ opacity: 0 }, { opacity: 1 }], t, d, "ease-out");
+const fadeUp = (n, t, d = 600, dy = 18) => A(n, [{ opacity: 0, transform: `translateY(${dy}px)` }, { opacity: 1, transform: "none" }], t, d);
+const fadeOut = (n, t, d = 500) => A(n, [{ opacity: 1 }, { opacity: 0 }], t, d, "ease-in");
+const underline = (m, t, d, px = 3, from = null, to = null) => {
+  const f0 = { backgroundSize: `0% ${px}px` }, f1 = { backgroundSize: `100% ${px}px` };
+  if (from) { f0.color = from; f1.color = to; }
+  return A(m, [f0, f1], t, d, "ease-in-out");
+};
+
+function segments(text) {
+  const out = []; const re = /\[\[([\s\S]*?)\]\]/g; let i = 0, m;
+  while ((m = re.exec(text))) { if (m.index > i) out.push([text.slice(i, m.index), false]); out.push([m[1], true]); i = re.lastIndex; }
+  if (i < text.length) out.push([text.slice(i), false]);
+  return out;
+}
+
+const TOK = /(\/\/.*$)|("(?:[^"\\]|\\.)*"|`[^`]*`)|(\b(?:return|if|else|for|of|const|let|func)\b)|([A-Za-z_][\w.]*(?=\())|([A-Za-z_]\w*(?=\s*:(?![:=])))|(→|=>|\?\?|===|==|:=|\.\.\.)|(\b\d+\b)/g;
+const CLS = [null, "com", "str", "kw", "fn", "key", "op", "num"];
+function highlight(line, lang) {
+  if (lang === "md") return esc(line).replace(/^(\s*)(- \[ \]|-)/, '$1<span class="op">$2</span>');
+  let out = "", i = 0, m;
+  TOK.lastIndex = 0;
+  while ((m = TOK.exec(line))) {
+    out += esc(line.slice(i, m.index));
+    const g = m.slice(1).findIndex(x => x !== undefined) + 1;
+    out += `<span class="${CLS[g]}">${esc(m[0])}</span>`;
+    i = TOK.lastIndex;
+    if (m[0].length === 0) TOK.lastIndex++;
+  }
+  return out + esc(line.slice(i));
+}
+// wraps regex matches in text nodes with span.glow
+function wrapGlow(root, sources) {
+  if (!sources || !sources.length) return [];
+  const found = [];
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = []; while (walk.nextNode()) nodes.push(walk.currentNode);
+  const re = new RegExp(sources.join("|"), "g");
+  for (const n of nodes) {
+    const t = n.nodeValue; re.lastIndex = 0; if (!re.test(t)) continue; re.lastIndex = 0;
+    const frag = document.createDocumentFragment(); let i = 0, m;
+    while ((m = re.exec(t))) {
+      frag.append(t.slice(i, m.index));
+      const s = el("span", "glow"); s.textContent = m[0]; frag.append(s); found.push(s);
+      i = re.lastIndex;
+    }
+    frag.append(t.slice(i)); n.replaceWith(frag);
+  }
+  return found;
+}
+const pulse = (g, t) => A(g, [
+  { background: "#f0c67400", boxShadow: "0 0 0 0 #f0c67400" },
+  { background: "#f0c67455", boxShadow: "0 0 0 4px #f0c67455", offset: .4 },
+  { background: "#f0c67426", boxShadow: "0 0 0 2px #f0c67426" },
+], t, 900);
+// largest font size in [min,max] at which node fits inside box
+function fit(node, box, min, max) {
+  let lo = min, hi = max;
+  while (hi - lo > 0.5) {
+    const mid = (lo + hi) / 2; node.style.fontSize = mid + "px";
+    (box.scrollHeight <= box.clientHeight + 1 && box.scrollWidth <= box.clientWidth + 1) ? lo = mid : hi = mid;
+  }
+  node.style.fontSize = lo + "px";
+  return lo;
+}
+// shrink node's font until node is at most maxH tall
+function fitHeight(node, maxH, start, min) {
+  let s = start; node.style.fontSize = s + "px";
+  while (node.offsetHeight > maxH && s > min) { s -= 1; node.style.fontSize = s + "px"; }
+}
+
+// text with marks: words become spans (you: characters), marks become .m
+function renderText(host, text, perChar) {
+  const units = [], marks = [];
+  const paras = Array.isArray(text) ? text : [text];
+  for (const para of paras) {
+    const p = el("p");
+    for (const [chunk, marked] of segments(para)) {
+      const holder = marked ? el("span", "m") : p;
+      if (marked) { marks.push(holder); p.append(holder); }
+      chunk.split(/(`[^`]*`)/).forEach(part => {
+        if (!part) return;
+        let target = holder;
+        if (part.startsWith("`")) { target = el("span", "code-inline"); holder.append(target); part = part.slice(1, -1); }
+        if (perChar) {
+          for (const c of part) {
+            if (c === "\n") { target.append(el("br")); continue; }
+            const s = el("span", "c"); s.textContent = c; target.append(s); units.push(s);
+          }
+        } else {
+          for (const tok of part.split(/(\s+)/)) {
+            if (!tok) continue;
+            if (/^\s+$/.test(tok)) { target.append(" "); continue; }
+            const w = el("span", "w"); w.textContent = tok; target.append(w); units.push(w);
+          }
+        }
+      });
+    }
+    host.append(p);
+  }
+  return { units, marks };
+}
+
+// ── code panel ────────────────────────────────────────────────────────────
+function buildCode(host, spec) {
+  const panel = el("div", "panel");
+  panel.innerHTML = `<div class="bar"><div class="dots"><i></i><i></i><i></i></div><div class="label"></div></div>`;
+  const label = panel.querySelector(".label");
+  const body = el("div", "body");
+  const stack = el("div", "stack");
+  body.append(stack); panel.append(body); host.append(panel);
+
+  const groups = {};
+  const blocks = spec.blocks.map(b => {
+    const block = el("div", "block");
+    const lines = b.lines.map((raw, i) => {
+      const [, strike, indent, group, rest] = raw.match(/^(~)?(\s*)(?:@(\d)\|)?([\s\S]*)$/);
+      const text = indent + rest;  // "  @1|x" and "@1|  x" both keep their indentation
+      const ln = el("span", "ln", highlight(text, spec.lang) || " ");
+      ln.dataset.n = i + 1;
+      if (strike) ln.append(el("span", "strike"));
+      if (group) (groups[group] ||= []).push(ln);
+      block.append(ln);
+      return { ln, struck: !!strike };
+    });
+    const glows = wrapGlow(block, spec.glow);
+    stack.append(block);
+    const lab = el("span", null, esc(b.label)); label.append(lab);
+    return { block, lines, glows, lab };
+  });
+  const multi = blocks.length > 1;
+
+  return {
+    root: panel, groups, lineCount: blocks.reduce((n, b) => n + b.lines.length, 0),
+    fit() { fit(stack, body, 11, spec.big ? 30 : 22); },
+    play(t) {
+      A(panel, [{ opacity: 0, transform: "translateX(40px)" }, { opacity: 1, transform: "none" }], t, 700);
+      t += 300;
+      blocks.forEach((b, bi) => {
+        const last = bi === blocks.length - 1;
+        fadeIn(b.lab, t, 400);
+        if (multi) A(b.block, [{ opacity: 1 }, { opacity: 1 }], t, 1);
+        const step = Math.min(110, 1600 / b.lines.length);
+        b.lines.forEach(({ ln }, i) => A(ln, [{ opacity: 0, transform: "translateX(-10px)" }, { opacity: 1, transform: "none" }], t + i * step, 420));
+        t += b.lines.length * step + 500;
+        b.glows.forEach((g, i) => pulse(g, t + i * 380));
+        if (b.glows.length) t += b.glows.length * 380 + 700;
+        if (!last) {
+          t += 1400;
+          const struck = b.lines.filter(l => l.struck);
+          struck.forEach((l, i) => {
+            A(l.ln.querySelector(".strike"), [{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], t + i * 160, 450);
+            A(l.ln, [{ opacity: 1 }, { opacity: .35 }], t + i * 160 + 250, 400);
+          });
+          t += struck.length * 160 + 1300;
+          fadeOut(b.block, t, 500);
+          fadeOut(b.lab, t, 400);
+          t += 550;
+        }
+      });
+      return t;
+    },
+  };
+}
+
+function buildCards(host, groupsSpec) {
+  const wrap = el("div", "cards");
+  wrap.style.opacity = 0;
+  const parts = groupsSpec.map(g => {
+    const card = el("div", `card ${g.cls}`);
+    const h = el("h4", null, esc(g.title)); card.append(h);
+    const items = g.items.map(txt => {
+      const hot = txt.startsWith("!");
+      const it = el("div", "item" + (hot ? " hot" : ""), esc(hot ? txt.slice(1) : txt));
+      card.append(it); return it;
+    });
+    wrap.append(card);
+    return { h, items };
+  });
+  host.append(wrap);
+  return {
+    root: wrap, groups: {}, lineCount: 7,
+    fit() {},
+    play(t) {
+      fadeIn(wrap, t, 300);
+      for (const p of parts) {
+        fadeUp(p.h, t, 500, 8); t += 300;
+        p.items.forEach(it => { A(it, [{ opacity: 0, transform: "translateX(30px)" }, { opacity: 1, transform: "none" }], t, 550); t += 420; });
+        t += 500;
+      }
+      return t + 600;
+    },
+  };
+}
+
+// lights up glow group k across panels: each line warms, then settles
+function glowGroup(lines, t) {
+  lines.forEach(ln => A(ln, [
+    { backgroundColor: "#f0c67400" },
+    { backgroundColor: "#f0c67440", offset: .3 },
+    { backgroundColor: "#f0c6741c" },
+  ], t, 1400, "ease-out"));
+}
+
+// ── beats: each takes (layer host, t) and returns the end time ───────────
+function beatThread(host, beat, t0) {
+  const layer = el("div", "layer thread-layer");
+  host.append(layer);
+  const viewport = el("div", "viewport");
+  const thread = el("div", "thread");
+  viewport.append(thread);
+  const right = el("div", "right");
+  layer.append(viewport, right);
+  const slots = [];
+  const slotOf = i => { while (slots.length <= i) { const s = el("div", "slot"); right.append(s); slots.push(s); } return slots[i]; };
+  if (beat.messages.some(m => m.code?.slot === 1)) { slotOf(1); right.classList.add("two"); }
+
+  // build everything hidden, then measure
+  const items = beat.messages.map(msg => {
+    const node = el("div", `msg ${msg.who}`);
+    node.append(el("div", "who", msg.who === "you" ? `❯ ${esc(SHOW_CONFIG.youLabel)}` : `⏺ ${esc(SHOW_CONFIG.modelLabel)}`));
+    const text = el("div", "text");
+    node.append(text);
+    thread.append(node);
+    const { units, marks } = renderText(text, msg.text, msg.who === "you");
+    let panel = null, slot = 0;
+    if (msg.code) { slot = msg.code.slot || 0; panel = buildCode(slotOf(slot), msg.code); }
+    else if (msg.cards) { panel = buildCards(slotOf(0), msg.cards); }
+    return { msg, node, text, units, marks, panel, slot };
+  });
+  const vh = viewport.clientHeight;
+  items.forEach(it => fitHeight(it.text, vh - 90, it.msg.who === "you" ? 27 : 32, 18));
+  items.forEach(it => it.panel?.fit());
+
+  let t = t0;
+  mark(t);
+  fadeIn(layer, t, 400);
+  t += 200;
+  let scroll = 0;
+  const current = [];   // panel currently shown in each slot
+  const shown = [];
+
+  for (const it of items) {
+    mark(t);
+    // scroll so the whole message is in view, and quiet the ones above
+    const bottom = it.node.offsetTop + it.node.offsetHeight;
+    const target = Math.max(0, bottom - vh + 8);
+    if (target !== scroll) {
+      A(thread, [{ transform: `translateY(${-scroll}px)` }, { transform: `translateY(${-target}px)` }], t, 800);
+      scroll = target;
+      t += 450;
+    }
+    shown.forEach(s => A(s, [{ opacity: 1 }, { opacity: .42 }], t, 600, "ease-out"));
+    fadeUp(it.node, t, 500, 10);
+    shown.push(it.node);
+    t += 400;
+    const start = t;
+
+    if (it.msg.who === "you") {
+      const per = Math.min(26, 3600 / Math.max(it.units.length, 1));
+      it.units.forEach((c, i) => A(c, [{ opacity: 0 }, { opacity: 1 }], t + i * per, 60, "linear"));
+      t += it.units.length * per + 300;
+      for (const m of it.marks) {
+        const d = Math.max(500, Math.min(1100, m.textContent.length * 22));
+        underline(m, t, d, 3, "#d6d0c4", "#fff3e6");
+        t += d + 150;
+      }
+    } else {
+      const per = Math.min(50, 3200 / Math.max(it.units.length, 1));
+      it.units.forEach((w, i) => A(w, [{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], t + i * per, 380));
+      t += it.units.length * per + 300;
+    }
+
+    if (it.panel) {
+      mark(t);
+      const prev = current[it.slot];
+      if (prev) A(prev.root, [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateX(-30px)" }], t, 450, "ease-in");
+      current[it.slot] = it.panel;
+      t = it.panel.play(t + (prev ? 250 : 0)) + 300;
+      if (it.msg.code?.glowAfter) { glowGroup(it.panel.groups[1] || [], t); t += 1600; }
+    }
+
+    if (it.msg.who === "model") {
+      if (it.marks.length) mark(t);
+      for (const m of it.marks) {
+        const d = Math.max(600, Math.min(2200, m.textContent.length * 14));
+        underline(m, t, d, 3, "#bdb7ab", "#f6f1e7");
+        t += d + 250;
+      }
+      if (it.msg.links) {
+        t += 300;
+        for (let k = 1; k <= 9; k++) {
+          const lines = current.flatMap(p => (p && p.groups[k]) || []);
+          if (!lines.length) continue;
+          glowGroup(lines, t);
+          t += 1700;
+        }
+      }
+      // reading time: about 3.5 words a second, plus a beat for the code
+      const words = it.units.length, code = it.panel ? it.panel.lineCount : 0;
+      t = Math.max(t + 1800, start + words * 285 + code * 90 + 1200);
+    } else {
+      t += it.panel ? 1800 : 1100;
+    }
+  }
+  t += 800;
+  fadeOut(layer, t, 600);
+  return t + 600;
+}
+
+function beatSplit(host, beat, t0) {
+  const layer = el("div", "layer split-layer");
+  host.append(layer);
+  const panels = beat.panels.map(p => buildCode(layer, { lang: p.lang, glow: p.glow, blocks: [p] }));
+  panels.forEach(p => p.fit());
+  // same type size on both sides
+  const size = Math.min(...panels.map(p => parseFloat(p.root.querySelector(".stack").style.fontSize)));
+  panels.forEach(p => p.root.querySelector(".stack").style.fontSize = size + "px");
+  let t = t0;
+  mark(t);
+  fadeIn(layer, t, 300);
+  const ends = panels.map((p, i) => p.play(t + i * 250));
+  t = Math.max(...ends) + 2200;
+  glowGroup(panels[0].groups[1] || [], t);
+  t += 2000;
+  glowGroup(panels[1].groups[1] || [], t);
+  t += 3200;
+  fadeOut(layer, t, 600);
+  return t + 600;
+}
+
+function beatQuote(host, beat, t0) {
+  const layer = el("div", "layer quote-layer");
+  layer.innerHTML = `<div class="who">${esc(beat.who || "⏺ " + SHOW_CONFIG.modelLabel)}</div>`;
+  const big = el("div", "big");
+  if (beat.small) big.style.fontSize = "76px";
+  big.innerHTML = beat.text.replace(/\[\[([\s\S]*?)\]\]/g, '<span class="m">$1</span>');
+  layer.append(big);
+  host.append(layer);
+  let t = t0;
+  mark(t);
+  fadeIn(layer, t, 300);
+  fadeUp(layer.firstChild, t + 200, 500, 8);
+  fadeUp(big, t + 500, 1000, 30);
+  t += 1700;
+  for (const m of big.querySelectorAll(".m")) {
+    A(m, [{ backgroundSize: "0% 6px" }, { backgroundSize: "100% 6px" }], t, 1300, "ease-in-out");
+    t += 1450;
+  }
+  t += 3200;
+  fadeOut(layer, t, 700);
+  return t + 700;
+}
+
+function beatFan(host, beat, t0) {
+  const R = beat;
+  const layer = el("div", "layer");
+  const area = el("div", "readers");
+  layer.append(area);
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  area.append(svg);
+  const card = el("div", "src-card", `<div class="bar"><div class="dots"><i></i><i></i><i></i></div><span>${esc(R.source.label)}</span></div>`);
+  const code = el("div", "code", R.source.lines.map(l => highlight(l)).join("\n"));
+  card.append(code);
+  area.append(card);
+  const readerEls = R.targets.map((tg, i) => {
+    const r = el("div", "reader");
+    r.style.top = (i * Math.min(126, (610 - 104) / Math.max(1, R.targets.length - 1))) + "px";
+    // <faint>…</faint> and <chip>…</chip> are styled spans; everything else is highlighted code
+    const body = tg.lines.map(l => l.split(/(<(?:faint|chip)>[\s\S]*?<\/(?:faint|chip)>)/).map(part => {
+      const m = part.match(/^<(faint|chip)>([\s\S]*)<\/\1>$/);
+      return m ? `<span class="${m[1]}">${esc(m[2])}</span>` : highlight(part);
+    }).join("")).join("\n");
+    r.innerHTML = `<div class="rbar"><b>${esc(tg.name)}</b><span>${esc(tg.verb)}</span></div><div class="rbody">${body}</div>`;
+    area.append(r);
+    return r;
+  });
+  const caption = el("div", "caption");
+  const { units, marks: capMarks } = renderText(caption, R.caption, false);
+  layer.append(caption);
+  host.append(layer);
+
+  card.style.top = ((610 - card.offsetHeight) / 2) + "px";
+  const cardGlows = wrapGlow(code, R.glow);
+  const readerGlows = readerEls.map(r => wrapGlow(r.querySelector(".rbody"), R.glow));
+
+  // curves from the card to each reader, and a dot riding each one
+  const x0 = card.offsetLeft + card.offsetWidth, y0 = card.offsetTop + card.offsetHeight / 2;
+  const routes = readerEls.map(r => {
+    const x1 = r.offsetLeft - 4, y1 = r.offsetTop + r.offsetHeight / 2, mx = (x0 + x1) / 2;
+    const d = `M${x0 + 4},${y0} C${mx},${y0} ${mx},${y1} ${x1},${y1}`;
+    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    p.setAttribute("d", d); p.setAttribute("pathLength", "1"); svg.append(p);
+    const dot = el("div", "dot"); dot.style.offsetPath = `path("${d}")`; area.append(dot);
+    return { p, dot };
+  });
+
+  let t = t0;
+  mark(t);
+  fadeIn(layer, t, 300);
+  A(card, [{ opacity: 0, transform: "scale(.95)" }, { opacity: 1, transform: "none" }], t + 200, 800);
+  t += 1300;
+  cardGlows.forEach((g, i) => pulse(g, t + i * 200));
+  t += cardGlows.length * 200 + 900;
+  routes.forEach(({ p, dot }, i) => {
+    const s = t + i * 650;
+    A(p, [{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], s, 900, "ease-in-out");
+    A(dot, [{ offsetDistance: "0%", opacity: 0 }, { offsetDistance: "10%", opacity: 1, offset: .1 }, { offsetDistance: "100%", opacity: 1 }], s, 900, "ease-in-out");
+    A(dot, [{ opacity: 1 }, { opacity: 0 }], s + 950, 300);
+    A(readerEls[i], [{ opacity: 0, transform: "translateX(18px)" }, { opacity: 1, transform: "none" }], s + 750, 500);
+    readerGlows[i].forEach(g => pulse(g, s + 1100));
+  });
+  t += routes.length * 650 + 1800;
+
+  mark(t);
+  const per = Math.min(50, 3000 / units.length);
+  units.forEach((w, i) => A(w, [{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], t + i * per, 380));
+  t += units.length * per + 300;
+  for (const m of capMarks) { underline(m, t, 2400, 3, "#bdb7ab", "#f6f1e7"); t += 2600; }
+  t = Math.max(t + 2500, t0 + units.length * 300 + 9000);
+  fadeOut(layer, t, 600);
+  return t + 600;
+}
+
+const BEATS = { thread: beatThread, split: beatSplit, quote: beatQuote, fan: beatFan };
+
+// ── this animation's own beats: Object.assign(BEATS, { name: builder }) ──
+// A clip is a real recording. The video is not a Web Animation, so it gets a
+// sync function instead: every seek and every tick sets its time from the
+// same segment clock (play at SPEED while the clock runs and it is in range;
+// a seek, a pause or drift over 250ms sets currentTime exactly).
+function beatClip(host, spec, t0) {
+  const c = CLIPS[spec.clip] || { src: "", dur: 8000, cues: [] };
+  // from/to (ms) play one stretch of a recording: its cues are the ones in
+  // that stretch, measured from its start
+  const startMs = spec.from || 0, to = spec.to ?? c.dur;
+  const span = spec.cues ?? c.cues.filter(q => q.at >= startMs && q.at < to).map(q => ({ ...q, at: q.at - startMs }));
+  const beat = { ...spec, src: c.src, from: startMs, dur: spec.dur ?? to - startMs, cues: span };
+  const layer = el("div", "layer clip-layer");
+  const box = el("div", "clip-box");
+  const v = document.createElement("video");
+  v.src = beat.src; v.muted = true; v.preload = "auto"; v.playsInline = true;
+  box.append(v);
+  box.dataset.rate = beat.rate || 1;   // read by tools/labelcheck.mjs
+  // a label only where it says something: realtime clips (the point is how
+  // fast it is) and sped-up ones (rate > 1, with the factor); otherwise the
+  // slot stays, empty, so every frame sits at the same place
+  const sped = (beat.rate || 1) > 1;
+  const tagText = sped ? `sped up ×${beat.rate}` : beat.realtime ? "real time · not sped up" : "";
+  const tag = el("div", "clip-tag" + (sped ? " fast" : "") + (tagText ? "" : " empty"), `<i></i>${esc(tagText || "·")}`);
+  // the label sits above the frame, never on the recording
+  const left = el("div", "clip-left");
+  left.append(tag, box);
+  const cap = el("div", "clip-cap", esc(beat.caption || ""));
+  left.append(cap);
+  const side = el("div", "clip-side");
+  const kick = el("div", "kick", esc(beat.kicker || "")); side.append(kick);
+  const head = el("div", "head", markup(beat.head || "")); side.append(head);
+  const cues = (beat.cues || []).map(c => {
+    const n = el("div", "cue", `<b>${esc(c.keys)}</b> ${esc(c.text)}`); side.append(n); return { n, at: c.at };
+  });
+  let free = null;
+  if (beat.free) {
+    free = el("div", "free", `<div class="h">${esc(beat.free.title)}</div>` + beat.free.items.map(i => `<div class="it">${markup(i)}</div>`).join(""));
+    side.append(free);
+  }
+  // the side column clips; its inner wrapper is what scrolls
+  const inner = el("div", "clip-inner");
+  inner.append(...side.childNodes);
+  side.append(inner);
+  layer.append(left, side);
+  host.append(layer);
+  // a long cue list scrolls: keep the newest cue in view
+  const sideH = host.clientHeight;
+  let t = t0;
+  mark(t);
+  fadeIn(layer, t, 300);
+  A(box, [{ opacity: 0, transform: "scale(.97)" }, { opacity: 1, transform: "none" }], t + 100, 700);
+  fadeUp(kick, t + 300, 500, 8);
+  fadeUp(head, t + 450, 700, 12);
+  fadeIn(cap, t + 700, 500);
+  const vStart = t + 1100, dur = beat.dur, rate = beat.rate || 1;
+  const from = (beat.from || 0) / 1000;
+  syncs.push((clock, playing) => {
+    const local = (clock - vStart) / 1000 * rate;
+    const want = Math.max(0, Math.min(dur / 1000, local)) + from;
+    const inside = local > 0 && local < dur / 1000;
+    if (!v.readyState) return;
+    if (playing && inside) {
+      v.playbackRate = SPEED * rate;
+      if (v.paused) { v.currentTime = want; v.play().catch(() => {}); }
+      else if (Math.abs(v.currentTime - want) > 0.25) v.currentTime = want;
+    } else {
+      if (!v.paused) v.pause();
+      if (Math.abs(v.currentTime - want) > 0.02) v.currentTime = want;
+    }
+  });
+  let shownTop = 0;
+  cues.forEach((c, i) => {
+    const at = vStart + c.at / rate;
+    mark(at);
+    A(c.n, [{ opacity: 0, transform: "translateX(16px)" }, { opacity: 1, transform: "none" }], at, 400);
+    A(c.n, [{ borderLeftColor: "#9fe0b4" }, { borderLeftColor: "#9fe0b4" }], at, 1);
+    const next = cues[i + 1];
+    if (next) A(c.n, [{ opacity: 1 }, { opacity: .45 }], vStart + next.at / rate, 500, "ease-out");
+  });
+  // scroll the side column up when the cues would run off the bottom
+  const bottomOf = n => n.offsetTop + n.offsetHeight;
+  cues.forEach(c => {
+    const over = bottomOf(c.n) - sideH + 10;
+    if (over > shownTop) {
+      const at = vStart + c.at / rate - 300;
+      A(inner, [{ transform: `translateY(${-shownTop}px)` }, { transform: `translateY(${-over}px)` }], at, 500);
+      shownTop = over;
+    }
+  });
+  t = vStart + dur / rate;
+  if (free) { mark(t - 2500); fadeUp(free, t - 2500, 600, 12); if (bottomOf(free) - sideH + 10 > shownTop) { A(inner, [{ transform: `translateY(${-shownTop}px)` }, { transform: `translateY(${-(bottomOf(free) - sideH + 10)}px)` }], t - 2800, 500); } }
+  t += beat.hold ?? 2200;
+  fadeOut(layer, t, 600);
+  return t + 600;
+}
+
+// a grid of small cards: one per app, each listing the same keys
+function beatKeys(host, beat, t0) {
+  const layer = el("div", "layer");
+  layer.innerHTML = `<div class="keys-head">${markup(beat.head)}</div>`;
+  const grid = el("div", "keys-grid");
+  grid.style.gridTemplateColumns = `180px repeat(${beat.apps.length}, 1fr)`;
+  const cells = [];
+  grid.append(el("div", "kh", ""));
+  beat.apps.forEach(a => grid.append(el("div", "kh", esc(a))));
+  beat.rows.forEach(r => {
+    const k = el("div", "kk", esc(r.keys)); grid.append(k);
+    const row = [k];
+    r.cells.forEach(c => { const n = el("div", "kc" + (c ? "" : " none"), c ? esc(c) : "—"); grid.append(n); row.push(n); });
+    cells.push(row);
+  });
+  layer.append(grid);
+  const foot = el("div", "keys-foot", markup(beat.foot || ""));
+  layer.append(foot);
+  host.append(layer);
+  let t = t0;
+  mark(t);
+  fadeIn(layer, t, 300);
+  fadeUp(layer.firstChild, t + 100, 600, 10);
+  t += 900;
+  cells.forEach(row => { row.forEach((n, i) => A(n, [{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], t + i * 70, 420)); t += 420; });
+  t += 500;
+  mark(t);
+  fadeUp(foot, t, 700, 10);
+  t += 900;
+  for (const m of foot.querySelectorAll(".m")) { underline(m, t, 1600, 3, "#bdb7ab", "#f6f1e7"); t += 1800; }
+  t += beat.hold ?? 4200;
+  fadeOut(layer, t, 600);
+  return t + 600;
+}
+
+// contrast: the left panel is one function cut into bands; each band sits
+// in a grid row with its counterpart on the right, so code is level with
+// code and config with config. Then the glow groups light both sides.
+function ctLines(lines, lang) {
+  const block = el("div", "block ct-code");
+  const groups = {}; const all = [];
+  lines.forEach(raw => {
+    const [, , indent, group, rest] = raw.match(/^(~)?(\s*)(?:@(\d)\|)?([\s\S]*)$/);
+    const ln = el("span", "ln", highlight(indent + rest, lang) || " ");
+    if (group) (groups[group] ||= []).push(ln);
+    block.append(ln); all.push(ln);
+  });
+  return { block, groups, all };
+}
+function beatContrast(host, beat, t0) {
+  const C = beat.spec;
+  const layer = el("div", "layer ct-layer");
+  const bar = el("div", "ct-bar", `<div>${esc(C.left.label)}</div><span></span><div>declared</div>`);
+  layer.append(bar);
+  const groups = {};
+  const addGroups = g => { for (const k in g) (groups[k] ||= []).push(...g[k]); };
+  const rows = C.left.bands.map((band, i) => {
+    const l = el("div", `ct-l ${band.kind}` + (i === 0 ? " first" : "") + (i === C.left.bands.length - 1 ? " last" : ""));
+    const L = ctLines(band.lines, band.lang); l.append(L.block); addGroups(L.groups);
+    const rb = C.right.bands[i];
+    const mid = el("div", `ct-mid ${band.kind}`, `<span>${band.kind === "config" ? "config" : "code"}</span>`);
+    const r = el("div", `ct-r ${rb.kind}`);
+    const panel = el("div", "panel");
+    panel.innerHTML = `<div class="bar"><div class="dots"><i></i><i></i><i></i></div><span>${esc(rb.label)}</span></div>`;
+    const body = el("div", "body"); const R = ctLines(rb.lines, rb.lang); body.append(R.block); panel.append(body); r.append(panel); addGroups(R.groups);
+    layer.append(l, mid, r);
+    return { l, L, mid, panel, R };
+  });
+  const cap = el("div", "ct-cap");
+  const caps = Object.entries(C.groups || {}).map(([k, text]) => { const d = el("div", null, esc(text)); cap.append(d); return [k, d]; });
+  layer.append(cap);
+  host.append(layer);
+  // one type size for both sides: the largest that fits the content area
+  const blocks = [...layer.querySelectorAll(".ct-code")];
+  let size = 19;
+  const setSize = z => blocks.forEach(b => { b.style.fontSize = z + "px"; b.style.lineHeight = "1.42"; });
+  setSize(size);
+  while ((layer.scrollHeight > host.clientHeight || layer.scrollWidth > host.clientWidth + 1 || blocks.some(b => b.scrollWidth > b.clientWidth + 1)) && size > 11) setSize(size -= 0.5);
+  let t = t0;
+  mark(t);
+  fadeIn(layer, t, 300);
+  [...bar.children].forEach((d, i) => fadeIn(d, t + 100 + i * 200, 500));
+  t += 600;
+  rows.forEach(row => {
+    mark(t);
+    fadeIn(row.l, t, 400);
+    const step = Math.min(70, 1200 / row.L.all.length);
+    row.L.all.forEach((ln, i) => A(ln, [{ opacity: 0, transform: "translateX(-8px)" }, { opacity: 1, transform: "none" }], t + 150 + i * step, 380));
+    t += 150 + row.L.all.length * step + 300;
+    A(row.mid, [{ opacity: 0 }, { opacity: 1 }], t, 400, "ease-out");
+    A(row.panel, [{ opacity: 0, transform: "translateX(30px)" }, { opacity: 1, transform: "none" }], t + 150, 600);
+    row.R.all.forEach((ln, i) => A(ln, [{ opacity: 0 }, { opacity: 1 }], t + 400 + i * 90, 380, "ease-out"));
+    t += 400 + row.R.all.length * 90 + 900;
+  });
+  t += 600;
+  // each correspondence in turn: the lines on both sides, and what they mean
+  for (const [k, d] of caps) {
+    const lines = groups[k] || [];
+    if (!lines.length) continue;
+    mark(t);
+    glowGroup(lines, t);
+    A(d, [{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }, { opacity: 1, offset: .85 }, { opacity: 0 }], t, 2600);
+    t += 2700;
+  }
+  t += 2200;
+  fadeOut(layer, t, 600);
+  return t + 600;
+}
+
+Object.assign(BEATS, { clip: beatClip, keys: beatKeys, contrast: beatContrast });
+
+// icons: inlined by tools/assemble.py from ~/proj/*/assets/icon.svg
+Object.assign(ICONS, {
+ "matomeru": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 128 128\" role=\"img\" aria-label=\"matomeru\"><title>matomeru</title><rect width=\"128\" height=\"128\" rx=\"28\" fill=\"#161b26\"/><g transform=\"translate(20 14)\"><g><path d=\"M41 37C36 27 27 17 15 13c-3 11 4 24 20 29z\" fill=\"#6253df\"/><path d=\"M47 37C52 27 61 17 73 13c3 11-4 24-20 29z\" fill=\"#6253df\"/><path d=\"M44 38C30 38 14 41 11 55L9 73c0 8 5 12 13 12h44c8 0 13-4 13-12L77 55C74 41 58 38 44 38z\" fill=\"#8a7cf5\"/><path d=\"M37 45c-6 3-10 8-12 13M51 45c6 3 10 8 12 13\" fill=\"none\" stroke=\"#a99ef8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><path d=\"M17 74a7 7 0 0 1 14 0M37 74a7 7 0 0 1 14 0M57 74a7 7 0 0 1 14 0M27 64a7 7 0 0 1 14 0M47 64a7 7 0 0 1 14 0\" fill=\"none\" stroke=\"#ffe1ec\" stroke-width=\"3\" stroke-linecap=\"round\"/><path d=\"M33 40c4 4 18 4 22 0-3-6-19-6-22 0z\" fill=\"#ff7aa0\"/><circle cx=\"44\" cy=\"39\" r=\"7\" fill=\"#ff7aa0\"/></g></g></svg>",
+ "o-ai": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 128 128\" role=\"img\" aria-label=\"o-ai\"><title>o-ai</title><rect width=\"128\" height=\"128\" rx=\"28\" fill=\"#121a33\"/><circle cx=\"49\" cy=\"76\" r=\"18\" fill=\"none\" stroke=\"#e3e9ff\" stroke-width=\"12\"/><path d=\"M67 58V94M91 58V94\" stroke=\"#e3e9ff\" stroke-width=\"12\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M91 20Q91 34 105 34Q91 34 91 48Q91 34 77 34Q91 34 91 20Z\" fill=\"#4a72f0\"/></svg>",
+ "o-inventory": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 128 128\" role=\"img\" aria-label=\"o-inventory\"><title>o-inventory</title><rect width=\"128\" height=\"128\" rx=\"28\" fill=\"#2a1515\"/><g><path d=\"M38 50H90M64 24V76\" stroke=\"#ff9d86\" stroke-width=\"14\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M38 100H90\" stroke=\"#e5533d\" stroke-width=\"14\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></g></svg>",
+ "o-proj": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 128 128\" role=\"img\" aria-label=\"o-proj\"><title>o-proj</title><rect width=\"128\" height=\"128\" rx=\"28\" fill=\"#0f2329\"/><g><path d=\"M32 16H96a8 8 0 0 1 8 8V96a8 8 0 0 1-8 8H32a8 8 0 0 1-8-8V24a8 8 0 0 1 8-8ZM24 40H104V48H24ZM24 72H104V80H24ZM60 16H68V40H60Z\" fill=\"#26b5c4\" fill-rule=\"evenodd\"/><path d=\"M32 104H40V112H32ZM88 104H96V112H88Z\" fill=\"#26b5c4\"/><g fill=\"#dff8fa\"><rect x=\"32\" y=\"24\" width=\"16\" height=\"8\" rx=\"3\"/><rect x=\"80\" y=\"24\" width=\"16\" height=\"8\" rx=\"3\"/><rect x=\"48\" y=\"56\" width=\"32\" height=\"8\" rx=\"3\"/><rect x=\"48\" y=\"88\" width=\"32\" height=\"8\" rx=\"3\"/></g></g></svg>",
+ "ochazuke": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 128 128\" role=\"img\" aria-label=\"ochazuke\"><title>ochazuke</title><rect width=\"128\" height=\"128\" rx=\"28\" fill=\"#1d2b24\"/><g transform=\"translate(20 18)\"><g><path d=\"M32 30c-5-6 5-10 0-16\" fill=\"none\" stroke=\"#6f9c8a\" stroke-width=\"5\" stroke-linecap=\"round\"/><path d=\"M48 26c-5-6 5-10 0-16\" fill=\"none\" stroke=\"#6f9c8a\" stroke-width=\"5\" stroke-linecap=\"round\"/><ellipse cx=\"44\" cy=\"50\" rx=\"27\" ry=\"13\" fill=\"#fff6e3\" stroke=\"#d9c89f\" stroke-width=\"2\"/><path d=\"M54 40c4-12 18-14 24-12-2 9-12 16-24 12z\" fill=\"#6fd36a\"/><path d=\"M56 39c6-4 12-7 18-9\" fill=\"none\" stroke=\"#b9ec84\" stroke-width=\"1.6\" stroke-linecap=\"round\"/><path d=\"M2 52h84a42 32 0 0 1-84 0z\" fill=\"#3fa877\"/><path d=\"M2 52h84\" stroke=\"#b9ec84\" stroke-width=\"5\" stroke-linecap=\"round\"/><path d=\"M30 83h28\" stroke=\"#3fa877\" stroke-width=\"6\" stroke-linecap=\"round\"/></g></g></svg>",
+ "oden": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 128 128\" role=\"img\" aria-label=\"oden\"><title>oden</title><rect width=\"128\" height=\"128\" rx=\"28\" fill=\"#241a12\"/><g transform=\"rotate(-9 64 64)\"><path d=\"M64 8L64 120\" stroke=\"#dcbc7e\" stroke-width=\"4.5\" stroke-linecap=\"round\"/><circle cx=\"64\" cy=\"8\" r=\"1.4\" fill=\"#f4dfae\"/><g transform=\"translate(64 35) rotate(4) scale(1.25)\"><path d=\"M-4.5 -14.5Q0 -20 4.5 -14.5Q13 -3 17 8Q20 16 11 16.5Q0 18 -11 16.5Q-20 16 -17 8Q-13 -3 -4.5 -14.5Z\" fill=\"#9d93ab\" stroke=\"#3b2615\" stroke-width=\"3\" stroke-linejoin=\"round\"/><path d=\"M-7 -1L5 11M-1 -9L11 3M7 -3L-5 9M1 -10L-11 2\" stroke=\"#c4bccf\" stroke-width=\"1.4\" stroke-linecap=\"round\" opacity=\".45\"/><g fill=\"#5f566b\"><circle cx=\"-9\" cy=\"10\" r=\"1.4\"/><circle cx=\"-2\" cy=\"4\" r=\"1.2\"/><circle cx=\"8\" cy=\"11\" r=\"1.4\"/><circle cx=\"3\" cy=\"-5\" r=\"1.1\"/><circle cx=\"-5\" cy=\"-3\" r=\"1\"/><circle cx=\"12\" cy=\"6\" r=\"1.1\"/><circle cx=\"1\" cy=\"12\" r=\"1.2\"/></g><path d=\"M-8 -3Q-4 -10 -1 -13\" fill=\"none\" stroke=\"#ddd6e5\" stroke-width=\"2.2\" stroke-linecap=\"round\"/></g><g transform=\"translate(64 71) rotate(-5) scale(1.28)\"><path d=\"M-18 -6.0V6.0A18 7.5 0 0 0 18 6.0V-6.0Z\" fill=\"#e7ad5e\" stroke=\"#3b2615\" stroke-width=\"3\" stroke-linejoin=\"round\"/><ellipse cx=\"0\" cy=\"-6.0\" rx=\"18\" ry=\"7.5\" fill=\"#fff4dc\" stroke=\"#3b2615\" stroke-width=\"3\"/><ellipse cx=\"0\" cy=\"-6.0\" rx=\"13.0\" ry=\"5.1\" fill=\"none\" stroke=\"#f0d6a0\" stroke-width=\"2\"/><path d=\"M-7.6 -7.5L-2.7 -6.5M7.6 -4.5L2.7 -5.5M1.8 -9.4L0.7 -7.3M-1.8 -2.6L-0.7 -4.7\" stroke=\"#e2bb7c\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M-15 -3.0Q-14 5.0 -9 10.1\" fill=\"none\" stroke=\"#f6c98a\" stroke-width=\"2\" stroke-linecap=\"round\"/><ellipse cx=\"0\" cy=\"-6.0\" rx=\"2.6\" ry=\"1.6\" fill=\"#dcbc7e\"/></g><g transform=\"translate(64 100) rotate(6) scale(1.22)\"><path d=\"M-16 -9H14A6 9 0 0 1 14 9H-16A6 9 0 0 1 -16 -9Z\" fill=\"#c9803f\" stroke=\"#3b2615\" stroke-width=\"3\" stroke-linejoin=\"round\"/><path d=\"M-15 -4Q-8 -7 -1 -4Q6 -1 12 -5\" fill=\"none\" stroke=\"#8f4f22\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><ellipse cx=\"14\" cy=\"0\" rx=\"6\" ry=\"9\" fill=\"#fbe6c2\" stroke=\"#3b2615\" stroke-width=\"2.5\"/><ellipse cx=\"14\" cy=\"0\" rx=\"2.6\" ry=\"4.4\" fill=\"#3b2615\"/></g></g></svg>",
+ "family": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 128 128\" role=\"img\" aria-label=\"o family\"><title>o family</title><rect width=\"128\" height=\"128\" rx=\"28\" fill=\"#18181d\"/><rect x=\"18\" y=\"26\" width=\"92\" height=\"76\" rx=\"13\" fill=\"#f4efe6\"/><rect x=\"18\" y=\"26\" width=\"92\" height=\"76\" rx=\"13\" fill=\"none\" stroke=\"#f4efe6\" stroke-width=\"7\"/><rect x=\"25.0\" y=\"33.0\" width=\"35.5\" height=\"46.5\" rx=\"7\" fill=\"#3fa877\"/><circle cx=\"42.8\" cy=\"56.2\" r=\"6\" fill=\"#e5533d\"/><path d=\"M29.8 42.2h0.01M53.8 45.2h0.01M32.8 69.2h0.01M53.8 68.2h0.01M43.8 38.2h0.01\" stroke=\"#a6e3c3\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"25.0\" y=\"83.0\" width=\"35.5\" height=\"12.0\" rx=\"5\" fill=\"#4a72f0\"/><path d=\"M32.0 89.0H41.0M46.3 89.0H53.5\" stroke=\"#b6c8ff\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"64.0\" y=\"33.0\" width=\"10.5\" height=\"62.0\" rx=\"5\" fill=\"#26b5c4\"/><circle cx=\"69.2\" cy=\"42.9\" r=\"3\" fill=\"#a3e9f0\"/><circle cx=\"69.2\" cy=\"57.2\" r=\"3\" fill=\"#a3e9f0\"/><circle cx=\"69.2\" cy=\"71.4\" r=\"3\" fill=\"#a3e9f0\"/><circle cx=\"69.2\" cy=\"85.7\" r=\"3\" fill=\"#a3e9f0\"/><rect x=\"78.0\" y=\"33.0\" width=\"25.0\" height=\"18.0\" rx=\"4\" fill=\"#e8a33d\"/><path d=\"M86.0 42.0H95.0\" stroke=\"#ffdc94\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><circle cx=\"90.5\" cy=\"63.0\" r=\"8.5\" fill=\"#8a7cf5\"/><circle cx=\"90.5\" cy=\"63.0\" r=\"4.0\" fill=\"none\" stroke=\"#d3ccff\" stroke-width=\"2.5\"/><rect x=\"78.0\" y=\"75.0\" width=\"25.0\" height=\"20.0\" rx=\"5\" fill=\"#e5533d\"/><path d=\"M86.0 80.5H95.0M86.0 89.5H95.0\" stroke=\"#ffb8a8\" stroke-width=\"3.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>"
+});
+// ── end of this animation's own beats ──
+
+// ── segments of the show ──────────────────────────────────────────────────
+const SHOW = [];
+// front and back: lockup slides, the very first and very last thing on screen
+if (SHOW_CONFIG.front) SHOW.push({ kind: "front" });
+if (SHOW_CONFIG.intro) SHOW.push({ kind: "intro" });
+if (SHOW_CONFIG.opener) SHOW.push({ kind: "opener" });
+CHAPTERS.forEach((ch, ci) => SHOW.push({ kind: "chapter", ch, ci }));
+if (SHOW_CONFIG.outro) SHOW.push({ kind: "outro" });
+if (SHOW_CONFIG.back) SHOW.push({ kind: "back" });
+$("brand").textContent = SHOW_CONFIG.brand;
+
+const progress = $("progress");
+CHAPTERS.forEach(() => progress.append(el("i", null, "<b></b>")));
+
+function hideChrome(hidden) {
+  for (const id of ["top", "trule", "progress"]) $(id).style.visibility = hidden ? "hidden" : "visible";
+}
+
+// a title card: kicker, head with [[underlines]] drawn one after another, sub
+const markup = text => esc(text).replace(/\[\[([\s\S]*?)\]\]/g, '<span class="m">$1</span>').replace(/`([^`]*)`/g, '<span class="code-inline">$1</span>');
+function titleCard(cfg, { hold, fadeOutAt }) {
+  const o = $("overlay");
+  o.innerHTML = `<div class="kicker">${esc(cfg.kicker)}</div><div class="head">${markup(cfg.head)}</div><div class="sub">${esc(cfg.sub)}</div>`;
+  if (cfg.head.length > 70) o.children[1].style.fontSize = "78px";
+  hideChrome(true);
+  A(o, [{ opacity: 0 }, { opacity: 1 }], 0, 500, "ease-out");
+  fadeUp(o.children[0], 300, 700);
+  fadeUp(o.children[1], 600, 900, 28);
+  let t = 1700;
+  for (const m of o.querySelectorAll(".m")) {
+    const d = Math.max(900, Math.min(1800, m.textContent.length * 30));
+    A(m, [{ backgroundSize: "0% 5px" }, { backgroundSize: "100% 5px" }], t, d, "ease-in-out");
+    t += d + 300;
+  }
+  fadeUp(o.children[2], t, 800);
+  t += hold;
+  if (fadeOutAt) { fadeOut(o, t, 600); t += 700; }
+  return t;
+}
+const buildIntro = () => titleCard(SHOW_CONFIG.intro, { hold: 2600, fadeOutAt: true });
+const buildOutro = () => titleCard(SHOW_CONFIG.outro, { hold: 4000, fadeOutAt: !!SHOW_CONFIG.back });
+
+// a lockup: a large mark (serif, {{icon:…}} tokens welcome) and a row of items
+// under it, each an icon over a small name; the mark comes in, then the items
+// one by one. The last segment of the show ends still, for a recording.
+function buildLockup(cfg, last) {
+  const o = $("overlay");
+  o.innerHTML = `<div class="lockup"><div class="lk-mark">${markup(cfg.mark)}</div><div class="lk-row">${(cfg.items || []).map(i => `<div class="lk-item">${markup(i)}</div>`).join("")}</div></div>`;
+  hideChrome(true);
+  A(o, [{ opacity: 0 }, { opacity: 1 }], 0, 400, "ease-out");
+  A(o.querySelector(".lk-mark"), [{ opacity: 0, transform: "scale(.94)" }, { opacity: 1, transform: "none" }], 300, 900);
+  let t = 1300;
+  o.querySelectorAll(".lk-item").forEach(it => { fadeUp(it, t, 500, 12); t += 220; });
+  t += 500 + (cfg.hold ?? 1800);
+  if (!last) { fadeOut(o, t, 600); t += 700; }
+  return t;
+}
+const buildFront = () => buildLockup(SHOW_CONFIG.front, SHOW.length === 1);
+const buildBack = () => buildLockup(SHOW_CONFIG.back, true);
+
+function buildOpener() {
+  const o = $("overlay");
+  o.innerHTML = `<div class="opener-who">❯ ${esc(SHOW_CONFIG.youLabel)}</div><div class="opener"></div>`;
+  const line = o.lastChild;
+  const chars = [...SHOW_CONFIG.opener].map(c => { const s = el("span", "c"); s.textContent = c; line.append(s); return s; });
+  const caret = el("span", "caret"); line.append(caret);
+  hideChrome(true);
+  A(o, [{ opacity: 1 }, { opacity: 1 }], 0, 1);
+  fadeUp(o.firstChild, 300, 500, 8);
+  let t = 900;
+  chars.forEach((c, i) => A(c, [{ opacity: 0 }, { opacity: 1 }], t + i * 55, 40, "linear"));
+  t += chars.length * 55;
+  A(caret, [{ opacity: 1 }, { opacity: 0, offset: .5 }, { opacity: 1 }], 0, t + 3400, "steps(1)");
+  t += 3200;
+  fadeOut(o, t, 700);
+  return t + 800;
+}
+
+// a chapter title may hold "\n": it breaks the chapter card's title; the
+// header and the picker show the title on one line
+const oneLine = s => String(s).replace(/\s*\n\s*/g, " ");
+
+function buildChapter({ ch, ci }) {
+  const o = $("overlay");
+  hideChrome(false);
+  $("tnum").textContent = String(ci + 1).padStart(2, "0");
+  $("ttitle").textContent = oneLine(ch.title);
+  $("tsrc").textContent = ch.src;
+  [...progress.children].forEach((p, i) => p.classList.toggle("done", i < ci));
+
+  o.innerHTML = `<div class="big">${String(ci + 1).padStart(2, "0")}</div><div class="head">${esc(ch.title).replace(/\n/g, "<br>")}</div><div class="sub">${esc(ch.src)}</div><div class="line"></div>`;
+  A(o, [{ opacity: 1, transform: "none" }, { opacity: 1, transform: "none" }], 0, 1);
+  fadeUp(o.children[0], 0, 700, 30);
+  fadeUp(o.children[1], 200, 800, 30);
+  fadeUp(o.children[2], 600, 700);
+  A(o.children[3], [{ width: "0px" }, { width: "420px" }], 700, 1100);
+  A(o, [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateY(-30px)" }], 2500, 600, "ease-in");
+  A($("top"), [{ opacity: 0, transform: "translateY(-10px)" }, { opacity: 1, transform: "none" }], 2600, 600);
+
+  let t = 2900;
+  // the chapter card itself is step 0; each beat marks its own start
+  for (const beat of ch.beats) t = BEATS[beat.type]($("content"), beat, t) + 200;
+  A(progress.children[ci].firstChild, [{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], 0, t, "linear");
+  return t;
+}
+
+// ── player ────────────────────────────────────────────────────────────────
+// One clock per segment drives every animation (all held paused), so a seek
+// to any time, forwards or backwards, lands on exactly that frame.
+let cur = 0, paused = false, clock = 0, endAt = 0, last = performance.now(), tcTimer = 0;
+function clear() {
+  anims.splice(0).forEach(a => a.cancel());
+  document.querySelectorAll("#content video").forEach(v => { v.pause(); v.removeAttribute("src"); v.load(); });
+  syncs.splice(0);
+  marks = [];
+  seen = new WeakSet();
+  $("content").innerHTML = "";
+  $("overlay").innerHTML = "";
+}
+function go(i, at = 0) {
+  cur = Math.max(0, Math.min(SHOW.length - 1, i));
+  clear();
+  const seg = SHOW[cur];
+  const build = { front: buildFront, intro: buildIntro, opener: buildOpener, outro: buildOutro, back: buildBack, chapter: buildChapter }[seg.kind];
+  mark(0);
+  endAt = build(seg);
+  iconize($("stage"));
+  // points closer than 400ms collapse into the first
+  marks = marks.sort((a, b) => a - b).filter((m, i, all) => i === 0 || m - all[i - 1] >= 400);
+  seek(at === "end" ? marks[marks.length - 1] : at);
+}
+function seek(ms) {
+  clock = Math.max(0, Math.min(endAt, ms));
+  for (const a of anims) a.currentTime = clock;
+  for (const s of syncs) s(clock, false);
+  showTime();
+}
+// ms past the end of this segment carry into the next; before 0, into the previous
+function seekBy(ms) {
+  const to = clock + ms;
+  if (to > endAt && cur < SHOW.length - 1) return go(cur + 1, to - endAt);
+  if (to < 0 && cur > 0) { go(cur - 1); return seek(endAt + to); }
+  seek(to);
+}
+// steps between seek points: a message, a beat, a phase of a beat
+function step(dir) {
+  if (dir > 0) {
+    const next = marks.find(m => m > clock + 50);
+    return next === undefined ? go(cur + 1) : seek(next);
+  }
+  // pressed right after landing on a point, keep going back
+  const prev = [...marks].reverse().find(m => m < clock - 700);
+  return prev === undefined ? (cur > 0 ? go(cur - 1, "end") : seek(0)) : seek(prev);
+}
+function fmt(ms) { const s = ms / 1000; return `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, "0")}`; }
+function showTime() {
+  const seg = SHOW[cur];
+  const name = seg.kind === "chapter" ? String(seg.ci + 1).padStart(2, "0") : seg.kind;
+  const at = marks.filter(m => m <= clock).length;
+  $("tc").textContent = `${paused ? "❚❚ " : ""}${name} · ${fmt(clock)} / ${fmt(endAt)} · step ${at}/${marks.length}`;
+  $("tc").classList.add("on");
+  clearTimeout(tcTimer);
+  tcTimer = setTimeout(() => $("tc").classList.remove("on"), 1400);
+}
+function tick(now) {
+  const dt = now - last; last = now;
+  if (!paused) {
+    clock += dt * SPEED;
+    if (clock >= endAt && cur < SHOW.length - 1) go(cur + 1);
+    else { for (const a of anims) a.currentTime = Math.min(clock, endAt); for (const s of syncs) s(clock, true); }
+  } else for (const s of syncs) s(clock, false);
+  requestAnimationFrame(tick);
+}
+function setPaused(p) {
+  paused = p;
+  $("stage").classList.toggle("paused", p);
+  showTime();
+}
+// ── chapter picker ────────────────────────────────────────────────────────
+// `c` opens a list of every segment (intro, chapters, outro) with its start,
+// length and a preview; it reads SHOW and each segment's own end time, so
+// nothing is listed twice. It lives on the stage but is display:none until
+// opened, so recording is untouched. While it is open playback pauses;
+// closing without a jump restores the paused state it found.
+// A preview is the page itself in a small iframe: ?scene=N&at=mid&still=1
+// builds segment N, seeks to its middle step point and holds still (no hint,
+// no timecode). Frames are created only for the cards in view, one at a
+// time, the first time the picker opens, and kept.
+const STILL = params.has("still");
+const segName = seg => seg.kind === "chapter" ? oneLine(seg.ch.title) : seg.kind === "intro" ? (SHOW_CONFIG.intro?.kicker || "intro") : seg.kind === "outro" ? (SHOW_CONFIG.outro?.kicker || "outro") : seg.kind === "front" || seg.kind === "back" ? (SHOW_CONFIG[seg.kind].name || seg.kind) : "opener";
+const segNum = seg => seg.kind === "chapter" ? String(seg.ci + 1).padStart(2, "0") : seg.kind;
+let lengths = null;   // each segment's endAt, measured once
+function measure() {
+  if (lengths) return lengths;
+  const at = { i: cur, clock };
+  lengths = SHOW.map((_, i) => { go(i); return endAt; });
+  go(at.i, at.clock);
+  return lengths;
+}
+const picker = (() => {
+  const root = $("picker");
+  let open = false, wasPaused = false, sel = 0, filter = "", typing = false, digits = "", digitTimer = 0;
+  let cards = [];
+  function build() {
+    const len = measure();
+    let start = 0;
+    root.innerHTML = `<div class="pk-head"><span class="pk-title">Chapters</span><span class="pk-filter"></span><span class="pk-keys">j k move · enter jump · 1–9 chapter · / filter · esc close</span></div><div class="pk-grid"></div>`;
+    const grid = root.querySelector(".pk-grid");
+    cards = SHOW.map((seg, i) => {
+      const card = el("div", "pk-card");
+      const s = start; start += len[i];
+      card.innerHTML = `<div class="pk-thumb"><div class="pk-text">${esc(segName(seg))}</div></div><div class="pk-meta"><b>${esc(segNum(seg))}</b><span class="pk-name">${esc(segName(seg))}</span><span class="pk-time">${fmt(s).replace(/\.\d$/, "")} · ${fmt(len[i]).replace(/\.\d$/, "")}</span></div>`;
+      card.addEventListener("click", () => jump(i));
+      grid.append(card);
+      return { card, seg, i, framed: false };
+    });
+    iconize(root);
+  }
+  function visible() { return cards.filter(c => !filter || segName(c.seg).replace(ICON_RE, "").toLowerCase().includes(filter.toLowerCase())); }
+  function render() {
+    const vis = visible();
+    cards.forEach(c => c.card.style.display = vis.includes(c) ? "" : "none");
+    if (!vis.some(c => c.i === sel) && vis.length) sel = vis[0].i;
+    cards.forEach(c => c.card.classList.toggle("on", c.i === sel));
+    const f = root.querySelector(".pk-filter");
+    f.textContent = typing ? `/${filter}▏` : filter ? `/${filter}` : digits ? `#${digits}` : "";
+    cards[sel]?.card.scrollIntoView({ block: "nearest" });
+    queueFrames();
+  }
+  // previews: one iframe at a time, only for cards on screen
+  let loading = false;
+  function queueFrames() {
+    if (loading || !open) return;
+    const grid = root.querySelector(".pk-grid"), box = grid.getBoundingClientRect();
+    const next = cards.find(c => !c.framed && c.card.style.display !== "none" && (() => { const r = c.card.getBoundingClientRect(); return r.bottom > box.top && r.top < box.bottom; })());
+    if (!next) return;
+    next.framed = true; loading = true;
+    const f = document.createElement("iframe");
+    f.className = "pk-frame"; f.tabIndex = -1; f.setAttribute("aria-hidden", "true");
+    const url = new URL(location.href); url.search = "";
+    url.searchParams.set("scene", next.i); url.searchParams.set("at", "mid"); url.searchParams.set("still", "1");
+    f.src = url.href;
+    f.style.transform = `scale(${next.card.querySelector(".pk-thumb").offsetWidth / 1920})`;
+    f.addEventListener("load", () => { setTimeout(() => { f.classList.add("ready"); loading = false; queueFrames(); }, 400); });
+    next.card.querySelector(".pk-thumb").append(f);
+  }
+  function show() {
+    if (open) return;
+    if (!cards.length) build();
+    wasPaused = paused; setPaused(true);
+    sel = cur; filter = ""; typing = false; digits = "";
+    open = true; root.classList.add("open");
+    render();
+  }
+  function hide(resume = true) {
+    open = false; typing = false; root.classList.remove("open");
+    if (resume) setPaused(wasPaused);
+  }
+  function jump(i) { hide(false); go(i); setPaused(wasPaused); }
+  function move(d) {
+    const vis = visible(); if (!vis.length) return;
+    const k = Math.max(0, vis.findIndex(c => c.i === sel));
+    sel = vis[Math.max(0, Math.min(vis.length - 1, k + d))].i; render();
+  }
+  function digitJump() {
+    const n = parseInt(digits, 10); digits = "";
+    const c = n === 0 ? cards[0] : cards.find(c => c.seg.kind === "chapter" && c.seg.ci + 1 === n);
+    if (c) jump(c.i); else render();
+  }
+  // returns true when it handled the key
+  function onKey(e) {
+    const k = e.key;
+    if (!open) { if ((k === "c" || k === "C") && !e.metaKey && !e.ctrlKey) { show(); e.preventDefault(); return true; } return false; }
+    e.preventDefault();
+    if (typing) {
+      if (k === "Escape") { typing = false; filter = ""; }
+      else if (k === "Enter") { typing = false; }
+      else if (k === "Backspace") filter = filter.slice(0, -1);
+      else if (k.length === 1) filter += k;
+      render(); return true;
+    }
+    if (k === "Escape" || k === "c" || k === "C") hide();
+    else if (k === "j" || k === "ArrowDown" || k === "ArrowRight") move(1);
+    else if (k === "k" || k === "ArrowUp" || k === "ArrowLeft") move(-1);
+    else if (k === "Enter") jump(sel);
+    else if (k === "/") { typing = true; render(); }
+    else if (/^\d$/.test(k)) {
+      digits += k; clearTimeout(digitTimer);
+      const most = SHOW.filter(s => s.kind === "chapter").length;
+      if (parseInt(digits + "0", 10) > most) digitJump(); else { render(); digitTimer = setTimeout(digitJump, 600); }
+    }
+    return true;
+  }
+  return { onKey, show, hide, get open() { return open; } };
+})();
+
+addEventListener("keydown", e => {
+  if (picker.onKey(e)) return;
+  const k = e.key;
+  if (k === " ") { e.preventDefault(); setPaused(!paused); }
+  else if (k === "ArrowRight") e.shiftKey ? go(cur + 1) : step(1);
+  else if (k === "ArrowLeft") e.shiftKey ? go(clock > 1500 ? cur : cur - 1) : step(-1);
+  else if (k === ".") seekBy(1000);
+  else if (k === ",") seekBy(-1000);
+  else if (k === ">") seekBy(5000);
+  else if (k === "<") seekBy(-5000);
+  else if (k === "Home") seek(0);
+  else if (k === "End") seek(marks[marks.length - 1]);
+  else if (k === "r" || k === "R") go(0);
+  else if (k === "h" || k === "H") $("hud").classList.toggle("off");
+  else return;
+  e.preventDefault();
+});
+
+function scale() {
+  const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+  $("stage").style.transform = `scale(${s})`;
+}
+addEventListener("resize", scale); scale();
+setTimeout(() => $("hud").classList.add("off"), 3500);
+if (STILL) $("stage").classList.add("still");
+
+// for scripts/frames.mjs and other headless checks
+window.player = { go, seek, setPaused, step, picker, get state() { return { segment: cur, clock, endAt, marks: [...marks], segments: SHOW.length }; } };
+
+const start = parseInt(params.get("scene") || "0", 10);
+// ?still=1&at=mid|MS: a preview frame (the picker's): segment, then hold
+const startAt = params.get("at");
+document.fonts.ready.then(() => {
+  go(start);
+  if (STILL) {
+    setPaused(true);
+    // the middle step point; a one-step segment (a title card), 75% in, once it has all appeared
+    if (startAt === "mid") seek(marks.length > 1 ? Math.min(endAt, marks[Math.floor(marks.length / 2)] + 1200) : endAt * .75);
+    else if (startAt) seek(parseFloat(startAt) || 0);
+  }
+  requestAnimationFrame(t => { last = t; tick(t); });
+});
+</script>
+</body>
+</html>

@@ -64,4 +64,6 @@ go build -o ~/bin/o-family .
 
 The logo is an ekiben, a bento box with compartments of different shapes and sizes: rice with an umeboshi, a wide strip, a tall pickle slot, a square of tamagoyaki, a round cup and a side. Each compartment is one member's hue (ochazuke green, o-ai indigo, o-proj teal, oden amber, matomeru violet, o-inventory vermilion) on a neutral ink tile, so no single tool owns the family mark. `python3 docs/logo/build.py` writes `assets/icon.svg`, `assets/logo-light.svg` and `assets/logo-dark.svg`, with the wordmark drawn in the family's lettering (ochazuke's and matomeru's; `--check` confirms the glyphs still redraw theirs; `--preview DIR` renders 16, 32 and 128 px PNGs and the 1-colour icon). [animation-o-family-overview.html](animation-o-family-overview.html) is an animated overview of the family; open it in a browser.
 
+**[Watch: declared as data](https://unixsuperhero.github.io/o-family/animations/declarative/)**, a ten-minute tour of the family (oden, ochazuke, matomeru, the extensions, o-story) with real recordings, built with the `/animate` template. Its source is [`animations/declarative/`](animations/declarative/); `c` opens the chapter picker.
+
 MIT license.
