@@ -41,7 +41,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer, lookPath func
 	fmt.Fprintf(stderr, "o family moved into o proj: running o proj %s\n", joinArgs(argv))
 	bin, err := lookPath("o-proj")
 	if err != nil {
-		fmt.Fprintln(stderr, "o-family: o-proj is not on PATH (github.com/unixsuperhero/o-proj)")
+		fmt.Fprintln(stderr, "o-family: o-proj is not on PATH (ofam.dev/o-proj)")
 		return 1
 	}
 	cmd := exec.Command(bin, argv...)
